@@ -1,0 +1,870 @@
+---
+title: "Lista 1 - MAE0327"
+author: 'Guilherme NºUSP: 8943160 e Leonardo NºUSP: 9793436'
+output:
+  pdf_document:
+    fig_crop: no
+    keep_tex: yes
+    latex_engine: xelatex
+header-includes:
+- \usepackage{multirow}
+- \usepackage{ragged2e}
+- \usepackage{booktabs}
+---
+
+# Exercício 1
+
+Um pesquisador de um centro de reabilitação estudou a relação existente entre o status do condicionamento físico de pacientes antes de serem submetidos a uma cirurgia nos joelhos e o tempo (em dias) de terapia física necessário para a completa reabilitação. Seguem abaixo os dados de 24 pacientes do sexo masculino com idades entre 18 e 30 anos submetidos à cirurgia nos joelhos.
+
+\center
+\begin{tabular}{ccc}
+\hline
+Abaixo da média & Na média & Acima da média \\ \hline
+29 & 30 & 26 \\
+42 & 35 & 32 \\
+38 & 39 & 21 \\
+40 & 28 & 20 \\
+43 & 31 & 23 \\
+40 & 31 & 22 \\
+30 & 29 &  \\
+42 & 35 &  \\
+ & 29 &  \\
+ & 33 &  \\ \hline
+\end{tabular}
+\justify
+
+(a) Obtenha a tabela de Anova
+
+### Resolução
+
+Como temos um conjunto de dados desbalanceado, foi ajustado um modelo de Anova levando este fato em consideração.
+
+```{r echo = FALSE, message=FALSE}
+setwd("/home/gui/Área de Trabalho/Lista de plan2")
+
+library(car)
+
+dados <- read.csv("reab_Plan2", sep=";")
+dados <- data.frame(dados$Dias,as.factor(dados$Media))
+names(dados) <- c("Dias", "Medias")
+
+fit.model<- lm(Dias~Medias, data=dados)
+t.anova <- Anova(fit.model,type="III")
+
+knitr::kable(caption = "Tabela de Anova", t.anova)
+
+```
+
+(b) Teste a hipótese de igualdade de médias, utilizando $\alpha=$ 6%
+
+### Resolução
+
+Pela tabela 1 de Anova, temos que as médias não são iguais pois o *p-value* foi de < 0.0001 que ao nível de significância de 6%, nós temos evidências estatísticas para rejeitar a hipótese de igualdade de médias.
+
+\newpage
+(c)  Caso a hipótese de igualdade de médias seja rejeitada, compare as médias 2 a 2 por meio de testes de hipóteses e da construção de intervalos de confiança.
+
+### Resolução
+
+Sendo considerado um nivel de confiança global de 94%, como temos 3 comparações o nível foi ajustado para 99%.
+
+```{r echo = FALSE, out.width="61%",fig.align="center"}
+fit1.tk <- TukeyHSD(aov(fit.model), "Medias",conf.level = 0.99)
+plot(fit1.tk)
+```
+
+- 1: Abaixo da média
+
+- 2: Na média
+
+- 3: Acima da média
+
+E como podemos observar apenas as médias de dias dos tratamentos 1 e 2 são iguais, enquanto a média do tratamento 1 é maior que a do tratamento 3 e a média do tratamento 2 é maior que a do tratamento 3.
+
+# Exercício 2
+
+Pesquise sobre o teste de Welch e sobre o método de comparações múltiplas de Games–Howell.
+
+(a) Em qual situação ele deve ser aplicado?
+
+### Resolução
+
+O teste de Welch é um teste equivalente a ANOVA, com o diferencial de ser para amostras com variâncias heterocedásticas. Logo as hipóteses para esse teste são:
+
+$$\left\{ \begin{array}{ll}
+H_0: \mu_1=\mu_2=\cdots=\mu_k \\
+H_1: Pelo \ menos \ uma  \ media \ e \ diferente \end{array} \right.\ $$ 
+
+Se os dados são balanceados $(n_1=n_2=\cdots=n_k)$, o teste $F$ da ANOVA é robusto em relação a desigualdade das variâncias e pode ser aplicado.
+
+O método de Games-Howell foi criado para variações e tamanhos de amostras desiguais e é baseado na distribuição estatística q usando range studentizado de Tukey. 
+
+(b) O pacote R disponibiliza esses testes? Se sim, em qual pacote?
+
+### Resolução
+
+O teste de Welch é encontrado no pacote *onewaytests* e função **welch.test**. O método de Games Howell é encontrado no pacote *userfriendlyscience* e na função **oneway**.
+
+c) Escolha o conjunto de dados adequado (rim direito, rim esquerdo ou coração) e aplique os testes. Não há necessidade de realizar a análise de resíduos novamente. Adote $\alpha=$ 10%
+
+### Resolução
+
+Escolhendo o conjunto de dados "Coração", pois nos slides o teste de levene apresentou um *p-vlue* muito pequeno, ou seja, rejetou-se a hipósete de homocedasticidade, assim: 
+
+```{r echo = FALSE,message=FALSE}
+library(onewaytests)
+library(knitr)
+
+dt <- read.csv("coracao.csv",sep=";",dec=',')
+dt$Grupo <- as.factor(dt$Grupo)
+attach(dt)
+
+welch.test(Coracao~Grupo,data=dt,alpha = 0.1)
+```
+
+Com um $\alpha=10$% fixado, temos que o teste acima apresentou resultado significante, iremos realizar comparações múltiplas pelo método de Games Howell:
+
+```{r echo=FALSE}
+source("games.R")
+tb <- games.howell(Grupo,Coracao)
+
+knitr::kable(caption = "Comparações múltiplas de Games Howell", tb)
+
+detach(dt)
+```
+
+A partir das comparações múltiplas observamos que não é possível tomar conclusões se uma média é maior ou menor que outro tratamento, pois todas as comparações possuem o $0$ em seu intervalo de confiança.
+
+# Exercício 3
+
+Um estudo (RAE-CEA-04P07) foi planejado com o objetivo de verificar a eficácia da aplicação de distintos níveis de irradiação ionizante em mamões ao longo do tempo. Entre várias variáveis coletadas em cada mamão, destacamos as seguintes:
+
+- Variável resposta de interesse: Acidez titulável (percentual de ácido cítrico em g/mL).
+
+- Fatores ou variáveis explicativas de interesse: irradiação (dosagem de irradiação utilizada no mamão, em kGy: 0 e 0.5) e tempo (número de dias após a irradiação: 3, 7, 14 e 19).
+
+Para cada tratamento, constituído de cada combinação dos níveis dos dois fatores estudados, foram alocados 32 mamões papaia colhidos no mesmo dia. No entanto, alguns mamões foram inutilizados, sendo que o experimento foi realizado com um total de 237 mamões.
+
+(a) Faça uma análise descritiva das variáveis Acidez titulável levando em consideração os fatores descritos acima.
+
+### Resolução
+
+```{r echo=FALSE, results='asis',out.width="60%",fig.align="center"}
+library(knitr)
+library(xtable)
+
+dadosm <-read.csv('Mamoes.csv',sep=";",dec=",")
+dadosm$tempo <- as.factor(dadosm$tempo)
+dadosm$irradiacao <- as.factor(dadosm$irradiacao)
+dadosm$tratamento <- as.factor(dadosm$tratamento)
+
+attach(dadosm)
+
+par(mfrow=c(1,2))
+boxplot(Acidez~tempo, main="Acidez x Tempo")
+boxplot(Acidez~irradiacao, main="Acidez x Irreadiação")
+
+par(mfrow=c(1,1))
+boxplot(Acidez~tratamento, main="Acidez x Tratamento")
+
+interaction.plot(tempo, irradiacao, Acidez,main="Interação tempo e irradiação")
+
+
+m1 <- tapply(Acidez, irradiacao, mean)
+m2 <- tapply(Acidez, tempo, mean)
+m3 <- tapply(Acidez, tratamento, mean)
+
+m1 <- kable(round(t(m1),3), format = "latex", booktabs = TRUE)
+m2 <- kable(round(t(m2),3), format = "latex", booktabs = TRUE)
+
+cat(c("\\begin{table}[!htb]
+    \\begin{minipage}{.5\\linewidth}
+      \\caption{Média da Acidez por irradiação}
+      \\centering",
+        m1,
+    "\\end{minipage}%
+    \\begin{minipage}{.5\\linewidth}
+      \\centering
+        \\caption{Média da Acidez por tempo}",
+        m2,
+    "\\end{minipage} 
+\\end{table}"
+))  
+
+kable(caption = "Média da Acidez por tratamento", round(t(m3),3))
+
+
+d1 <- tapply(Acidez, irradiacao, sd)
+d2 <- tapply(Acidez, tempo, sd)
+d3 <- tapply(Acidez, tratamento, sd)
+
+d1 <- kable(round(t(d1),3), format = "latex", booktabs = TRUE)
+d2 <- kable(round(t(d2),3), format = "latex", booktabs = TRUE)
+
+cat(c("\\begin{table}[!htb]
+    \\begin{minipage}{.5\\linewidth}
+      \\caption{Desvio Padrão da Acidez por irradiação}
+      \\centering",
+        d1,
+    "\\end{minipage}%
+    \\begin{minipage}{.5\\linewidth}
+      \\centering
+        \\caption{Desvio Padrão da Acidez por tempo}",
+        d2,
+    "\\end{minipage} 
+\\end{table}"
+))  
+
+kable(caption = "Desvio Padrão da Acidez por tratamento", round(t(d3),3))
+
+me1 <- tapply(Acidez, irradiacao, median)
+me2 <- tapply(Acidez, tempo, median)
+me3 <- tapply(Acidez, tratamento, median)
+
+me1 <- kable(round(t(me1),3), format = "latex", booktabs = TRUE)
+me2 <- kable(round(t(me2),3), format = "latex", booktabs = TRUE)
+
+cat(c("\\begin{table}[!htb]
+    \\begin{minipage}{.5\\linewidth}
+      \\caption{Mediana da Acidez por irradiação}
+      \\centering",
+        me1,
+    "\\end{minipage}%
+    \\begin{minipage}{.5\\linewidth}
+      \\centering
+        \\caption{Mediana da Acidez por tempo}",
+        me2,
+    "\\end{minipage} 
+\\end{table}"
+))  
+
+kable(caption = "Mediana da Acidez por tratamento", round(t(me3),3))
+```
+
+Com a análise descritiva dos dados, a acidez aparentemente, possui menor valor mediano no tempo de 3 e 14 que nos tempos de 7 e 19, a irradiação tem um valor mediano maior para uma dosagem de 0.5 kGy. No gráfico de perfis, as retas não aparecem paralelas, representando um indício que há interação entre os fatores. Pelas demais tabelas observa-se que as médias e as medianas por irradiação, tempo e interação apesar de apresentarem uma diferença, são valores bem próximos um dos outros e os desvios padrões são pequenos, com isso é necessário uma análise mais completa para a tomada de decisões.
+
+(b) Para estudar as diferenças entre as irradiações e os tempos quanto à média das variáveis Acidez Titulável, foi utilizado um modelo de ANOVA com dois fatores fixos (irradiação e tempo). Escreva o modelo de análise de variância para este problema, obtenha o modelo ajustado e realize as comparações múltiplas de interesse.
+
+### Resolução
+
+O modelo de anova para este problema é: $Y_{ijk}=\mu+\alpha_i+\beta_j+\gamma_{ij}+e_{ijk}$
+
+E sua tabela de Anova:
+
+```{r echo = FALSE}
+fit.model1<- lm(Acidez~irradiacao*tempo)
+
+t.anova <- Anova(fit.model1,type="III")
+
+knitr::kable(caption = "Tabela de Anova", t.anova)
+```
+
+\newpage
+```{r echo = FALSE}
+tb <- games.howell(tratamento,Acidez)
+
+knitr::kable(caption = "Comparações múltiplas de Games Howell", tb)
+
+detach(dadosm)
+```
+
+Na comparações múltiplas, nota-se que as combinações 1:4, 1:5, 1:7, 3:4, 3:7 e 6:7 possuem resultados interessantes, as demais comparações não são possíveis de tomar conclusões se uma média é maior ou menor que outro tratamento. A média do tratamento 1 é menor que os tratamentos 4,5 e 7; o tratamento 3 por sua vez é menor que o 4 e o 7 e por fim o tratamento 6 também é menor que o tratamento 7.
+
+# Exercício 4
+
+Foi administrado hormônio de crescimento a crianças com baixa estatura que não atingiram a puberdade. O pesquisador tinha interesse nos efeitos dos fatores A: sexo (masculino, M e feminino, F) e B: desenvolvimento ósseo, sobre a taxa de crescimento induzida pela administração do hormônio. Os níveis considerados do fator B foram: severamente deprimido (SD), moderadamente deprimido (MD) e pouco deprimido (PD). A variável resposta foi a taxa de crescimento, definida como a diferença entre a altura ao final e antes do tratamento, expressa em cm por mês. Três crianças foram selecionadas de cada grupo sexo versus desenvolvimento ósseo. Quatro das 18 crianças não puderam terminar o experimento realizado durante um ano.
+
+\newpage
+\center
+Table 14. Taxa de crescimento (cm)
+\begin{tabular}{cccc}
+\hline
+ & \multicolumn{3}{c}{Desenvolvimento ósseo} \\ \cline{2-4} 
+Sexo & SD & MD & PD \\ \hline
+M & 1,4 2,4 2,2 & 2,1 1,7 & 0,7 1,1 \\
+F & 2,4 & 2,5 1,8 2,0 & 0,5 0,9 1,3 \\ \hline
+\end{tabular}
+\justify
+
+(a) Escreva o modelo para o experimento com suposições e restrições, explicando os termos do mesmo.
+
+### Resolução
+
+$$
+Y_{ijk} = \mu + \alpha_i + \beta_j + \gamma_{ij} + e_{ijk}; \\
+$$
+$$Y_{ijk} \sim N(\mu_{ij};\sigma^2), \ independentes$$
+$$
+e_{ijk} \sim N(0;\sigma^2), \ independentes
+$$
+  
+Sendo $i=1,2,3$ nível do tratamento de Desenvolvimento ósseo, $j=1,2$ nível do tratamento de sexo, $\alpha_i$ efeito do nível $i$ do fator de Desenvolvimento ósseo, $\beta_j$ efeito do nível $j$ do fator de sexo, $\gamma_{ij}$ efeito da interação $ij$ entre os fatores, $e_{ijk}$ é o erro aleatório.
+
+b) O modelo parece bem ajustado? Justifique.
+
+### Resolução
+
+Para o exercício foi utilizado 1 para o sexo masculino e 2 para o sexo feminino; 1 para severamente deprimido, 2 para moderadamente deprimido e 3 para pouco deprimido. Primeiramente foi feito o modelo completo:
+  
+```{r echo=F,message=F}
+horm <- read.csv("horm.txt",sep=";")
+attach(horm)
+sexo <- factor(horm$sexo)
+desenvolvimentoosseo <- factor(horm$desenvolvimentoosseo)
+tratamento <- factor(horm$tratamento)
+
+fit.modelC<- lm(crescimento~sexo*desenvolvimentoosseo)
+ta <- Anova(fit.modelC,type="III")
+knitr::kable(caption = "Tabela de Anova", ta)
+```
+
+Neste modelo, o efeito de interação e de sexo aparentam não serem significantes. Portanto foi feito um modelo reduzido com apenas o desenvolvimento ósseo:
+  
+```{r echo=F}
+fit.modelI<- lm(crescimento~desenvolvimentoosseo)
+ta <- Anova(fit.modelI,type="III")
+knitr::kable(caption = "Tabela de Anova modelo reduzido", ta)
+```
+
+\newpage
+No modelo reduzido, o efeito de desenvolvimento ósseo realmente possui efeito no crescimento. Realizando o diagnóstico:
+  
+```{r,echo=F, out.width="70%",fig.align="center"}
+# Diagnostico----------------------------------------------#
+
+#identify(fitted(fit.modelC),h,n=3)
+X <- model.matrix(fit.modelC)
+n <- nrow(X)
+p <- ncol(X)
+H <- X%*%solve(t(X)%*%X)%*%t(X)
+h <- diag(H)
+lms <- summary(fit.modelC)
+s <- lms$sigma
+r <- resid(lms)
+ts <- r/(s*sqrt(1-h))
+di <- (1/p)*(h/(1-h))*(ts^2)
+si <- lm.influence(fit.modelC)$sigma
+tsi <- r/(si*sqrt(1-h))
+a <- max(tsi)
+b <- min(tsi)
+par(mfrow=c(2,2))
+#plot(h,xlab="Indice", ylab="Medida h", pch=16, ylim=c(0,1.0))
+#identify(h, n=5)
+#title(sub="(a)")
+#
+plot(di,xlab="Indice", ylab="Distancia de Cook", pch=16)
+abline(h=3*mean(di),lty=3)
+#identify(di, n=3)
+#
+plot(tsi,xlab="Indice", ylab="Residuo Padronizado",
+     ylim=c(-5,5), pch=16)
+abline(2,0,lty=2)
+abline(-2,0,lty=2)
+#identify(tsi, n=1)
+#
+plot(fitted(fit.modelC),tsi,xlab="Valor Ajustado", 
+     ylab="Residuo Padronizado", ylim=c(-5,5), pch=16)
+abline(2,0,lty=2)
+abline(-2,0,lty=2)
+#identify(fitted(fit.modelC),tsi, n=1)
+#par(mfrow=c(1,1))
+#-----------------------------------------------------------------------#
+ident <- diag(n)
+epsilon <- matrix(0,n,100)
+e <- matrix(0,n,100)
+e1 <- numeric(n)
+e2 <- numeric(n)
+#
+for(i in 1:100){
+  epsilon[,i] <- rnorm(n,0,1)
+  e[,i] <- (ident - H)%*%epsilon[,i]
+  u <- diag(ident - H)
+  e[,i] <- e[,i]/sqrt(u)
+  e[,i] <- sort(e[,i]) }
+#
+for(i in 1:n){
+  eo <- sort(e[i,])
+  e1[i] <- (eo[2]+eo[3])/2
+  e2[i] <- (eo[97]+eo[98])/2 }
+#
+med <- apply(e,1,mean)
+faixa <- range(tsi,e1,e2)
+#
+#par(pty="s")
+qqnorm(tsi,xlab="Percentil da N(0,1)",
+       ylab="Residuo Studentizado", ylim=c(-4,4), pch=16, main="")
+par(new=TRUE)
+qqnorm(e1,axes=F,xlab="",ylab="",type="l",ylim=c(-4,4),lty=1, main="")
+par(new=TRUE)
+qqnorm(e2,axes=F,xlab="",ylab="", type="l",ylim=c(-4,4),lty=1, main="")
+par(new=TRUE)
+qqnorm(med,axes=F,xlab="",ylab="",type="l",ylim=c(-4,4),lty=2, main="")
+
+library(car)
+
+leveneTest(ts,tratamento)
+
+# Testes de normalidade
+
+shapiro.test(ts)
+
+library(nortest)
+
+ad.test(ts)
+```
+
+Os resíduos aparentam dentro do esperado, com as suposições de normalidade, independência e homocedasticidade satisfeitas.
+
+c) Quais conclusões você pode extrair da tabela de ANOVA?
+
+### Resolução
+
+Como já visto no item anterior é possível afirmar que a taxa de crescimento depende do desenvolvimento ósseo.
+
+\newpage
+d) Utilize o método de comparações múltiplas de Bonferroni para comparações múltiplas. Quais as suas conclusões?
+
+### Resolução
+
+Como apenas o fator desenvolvimento osseo é estatísticamente significante, iremos realizar as comparações múltiplas de bonferroni para os três níveis com coeficiente de confiança global iguala 95%, assim:
+
+Para contruir o Intervalo de confiança utilizou-se:
+$$t_{[1-\alpha/(2g);gl_C]}=t_{[1-0.05/(2*3);11]}=2.82$$
+Para$\mu_1-\mu_2$ pode ser estimado por $\widehat{\alpha}_2=-0.08$ com desvio padrão de $\sqrt{var(\widehat{\alpha}_2)}=0.245 \Rightarrow \ IC(\mu_1-\mu_2)=-0.08 \pm 2.82*0.245 \Rightarrow -0.08 \pm 0.691$ 
+
+Para$\mu_1-\mu_3$ pode ser estimado por $\widehat{\alpha}_3=-1.2$ com desvio padrão de $\sqrt{var(\widehat{\alpha}_3)}=0.245 \Rightarrow \ IC(\mu_1-\mu_3)=-1.2 \pm 2.82*0.245 \Rightarrow -1.2 \pm 0.691$ 
+
+Para$\mu_2-\mu_3$ pode ser estimado por $\widehat{\alpha}_2-\widehat{\alpha}_3=1.12$ com desvio padrão de $\sqrt{var(\widehat{\alpha}_2-\widehat{\alpha}_3)}=0.43 \Rightarrow \ IC(\mu_1-\mu_3)=1.12 \pm 2.82*0.43 \Rightarrow 1.12 \pm 1.2126$ 
+
+# Exercício 5
+
+Os dados abaixo representam as produçõees de milho antes (X) e depois (Y) da utilização de 3 tipos de fertilizantes: $A_1$, $A_2$ e $A_3$. As unidades experimentais são 21 localidades. Para cada tipo de fertilizante foram escolhidas aleatoriamente 7 localidades.
+
+\center
+\begin{tabular}{cclcclcc}
+\hline
+\multicolumn{3}{c}{$A_1$} & \multicolumn{3}{c}{$A_2$} & \multicolumn{2}{c}{$A_3$} \\ \hline
+X & Y &  & X & Y &  & X & Y \\ \hline
+3 & 6 &  & 4 & 8 &  & 3 & 6 \\
+1 & 4 &  & 5 & 9 &  & 2 & 7 \\
+3 & 5 &  & 5 & 7 &  & 2 & 7 \\
+1 & 3 &  & 4 & 9 &  & 3 & 7 \\
+2 & 4 &  & 3 & 8 &  & 4 & 8 \\
+1 & 3 &  & 1 & 5 &  & 1 & 5 \\
+4 & 6 &  & 2 & 7 &  & 4 & 7 \\ \hline
+\end{tabular}
+\justify
+
+(a) Escreva o modelo de covariância com suposições e restrições.
+
+### Resolução
+
+O modelo de Ancova usual é dado por: $$Y_{ij}=\mu+\alpha_i+\gamma (X_{ij}-\bar{X})+e_{ij}$$ onde $i=1,..,a$ e $j=1,...,n$. Adotando a parametrização de casela de referência temos:
+
+$y_{ij}$ : valor da variável resposta associada à unidade experimental j submetida ao tratamento i;
+
+$\mu$: Média do grupo 1 (casela de referência);
+
+$\alpha_i$: efeito fixo de tratamento i, sujeito à restrição $\alpha_1= 0$;
+
+$\gamma$: é o coeficiente de regressão para a relação linear entre Y e X;
+
+$X_{ij}$: valor da covariável X para a unidade experimental j submetida ao tratamento i;
+
+$e_{ij}$: erro aleatório associado à unidade experimental j submetida ao tratamento i. Supomos que $e_{ij}$ são independentes com distribuição $N(0, \sigma^2)$.
+
+(b) Escreva o modelo de regressão equivalente ao modelo de covariância para este problema. Especifique os vetores $\beta$ e Y e a matriz de planejamento X.
+
+### Resolução
+
+Para este problema o modelo de regressão equivalente ao modelo de covariância é:
+$$y_{ij} = \mu + \alpha_2I_2 + \alpha_3I_3 + \gamma(X_{ij} - \bar{X}) + e_{ij}$$
+Onde $i=1,2,3,4,5,6,7$ e $j=1,2,3$
+
+Fazendo $x_{ij} = X_{ij} - \bar{X}.. = X_{ij} - 2,14$(média do grupo 1), sendo que
+
+$I_2$ é 1 quando a observação está sob o tratamento 2, 0 caso contrário;
+
+$I_3$ é 1 quando a observação está sob o tratamento 3, 0 caso contrário.
+
+O vetor $\beta=\begin{pmatrix} \mu \\ I_2 \\ I_3 \\ \gamma \end{pmatrix}$
+
+O vetor $Y^T = (6,8,6,4,9,7,5,7,7,3,9,7,4,8,8,3,5,5,6,7,7)$
+
+Matriz de planejamento de X é: 
+
+```{r, echo=FALSE}
+df <- read.csv("milho1.txt",sep=";")
+df$Fertilizante <- as.factor(df$Fertilizante)
+df$FertAntesM <- (df$FertAntes-2.14)
+df$Fert2M <- (df$FertAntesM*df$Fert2)
+df$Fert3M <- (df$FertAntesM*df$Fert3)
+color = c("red", "blue", "black")[df$Fertilizante]
+
+modeloancova <- lm(FertDepois~Fertilizante+FertAntesM,data=df)
+
+model.matrix(modeloancova)
+```
+
+O modelo de regressão ajustado (modelo completo) é dado por:
+
+$$y_{ij}=4.42+2.19I_2+1.86I_3+0.74x_{ij}$$
+
+(c) Escreva o modelo reduzido para testar a não existência de efeito de tratamento. Especifique a matriz de planejamento X correspondente a este modelo.
+
+### Resolução
+
+Para testar $H_0 : \alpha_2 = \alpha_3 = 0$ contra $H_1$ : nem todos os $\alpha_i$ são iguais, ajustamos o seguinte modelo de regressão $y_{ij} = \mu + \gamma x_{ij} + e_{ij}$, (modelo reduzido).
+
+Onde o modelo ajustado é: $$y_{ij}=5.6+1.01 x_{ij}$$
+
+E sua matriz de planejamento dada por:
+
+```{r echo = FALSE}
+modres <- lm(FertDepois~FertAntesM,data=df)
+model.matrix(modres)
+```
+
+(d)  Teste a não existência de efeito de tratamento.
+
+### Resolução
+
+Utilizando o modelo ajustado no item anterior, temos:
+
+$SQR_R=27.234$ e $gl_R=19$
+
+Onde $SQR_R$ é a soma de quadrado dos resíduos do modelo reduzido e $SQR_C$ é a soma de quadrado dos resíduos do modelo completo, $gl_R$ são os graus de liberdade do modelo reduzido e $gl_C$ são os graus de liberdade do modelo completo.
+
+A estatística para o teste de $H_0$ é dada por:
+$$F^*=\frac{SQR_R-SQR_C}{gl_R-gl_C}:QMR_C=\frac{27.234-10.30}{19-17}=\frac{16.93}{2}=8.46$$
+Sob $H_0 \ F^* \sim F_{2,17}$ o que conduz a um *p-value* < 0.001. Assim, há evidências para rejeitarmos $H_0$, ou seja, parace haver efeito do fertilizandte sobre as produções de milho.
+
+```{r echo = FALSE}
+modres.anova <- anova(modres)
+
+modcom <- lm(FertDepois~Fert2+Fert3+FertAntesM,data=df)
+modcom.anova <- anova(modcom)
+
+SQP <- modres.anova$Sum[2]-modcom.anova$Sum[4]
+GLP <- modres.anova$Df[2]-modcom.anova$Df[4]
+QMP <-SQP/GLP
+FcalcP <- QMP/modcom.anova$Mean[4]
+pvalorP <- 1 - pf(FcalcP, GLP, modcom.anova$Df[4])
+```
+
+(e) Estime por ponto e por intervalo as produções médias obtidas após a aplicação dos fertilizantes considerando a produção média inicial igual a 2.76. (Use $\gamma$ = 0.95).
+
+### Resolução
+
+Para o Fertilizante $A_1$ a produção média após a aplicação do mesmo é de 4.5, levando em consideração a produção média inicial igual a 2.76, obteve um ganho médio de $4.5-2.76=1.74$.
+
+Para o Fertilizante $A_2$ a produção média após a aplicação do mesmo é de 7.57, levando em consideração a produção média inicial igual a 2.76, obteve um ganho médio de $7.57-2.76=4.81$.
+
+Para o Fertilizante $A_3$ a produção média após a aplicação do mesmo é de 6.7, levando em consideração a produção média inicial igual a 2.76, obteve um ganho médio de $6.7-2.76=3.94$.
+
+(f)  Você acha que a suposição de paralelismo é satisfeita neste problema? Justifique. Escreva a estatística adequada ao teste de paralelismo (especifique os modelos envolvidos no cálculo desta estatística).
+
+### Resolução
+
+O modelo geral, com diferentes inclinações para as 3 promoções, é dado por
+$$y_{ij} = \mu + \alpha_2I_2 + \alpha_3I_3 + \gamma x_{ij} + \beta_2I_2x_{ij} + \beta_3I_3 x_{ij} + e_{ij}$$
+
+Para testar $H0 : \beta_2 = \beta_3 = 0$ contra $H_1$ : há pelo menos uma diferença, ajustamos o modelo geral, obtendo a seguinte equação:
+$$y_{ij}=4.42+2.27I_2+1.94I_3+0.97 x_{ij}-0.29I_2 x_{ij}-0.37 I_3 x_{ij}$$
+
+obtendo $SQR_G=9.63$, $QMR_G=0.333$ e $gl_G=9$. A estatística para o teste de $H_1$ é dada por:
+
+$$F^*=\frac{SQR_C-SQR_G}{gl_C-gl_G}:QMR_G=\frac{10.3-9.63}{17-15}=\frac{0.67}{2}=0.335$$
+
+Onde $SQR_C$ é a soma de quadrado dos resíduos do modelo completo e $SQR_R$ é a soma de quadrado dos resíduos do modelo geral, $gl_G$ são os graus de liberdade do modelo geral e $gl_C$ são os graus de liberdade do modelo completo.
+
+Sob $H_0 \ F^* \sim F_{2,15}$ o que conduz a um  *p-value*=0.6. Assim, não há evidências para rejeitarmos $H_0$, ou seja, as 3 retas podem ser consideradas paralelas.
+
+# Códigos 
+
+```{r eval=FALSE}
+# Lista 1 de planejamento II
+setwd("/home/gui/Área de Trabalho/Lista de plan2")
+
+library(car)
+library(nortest)
+library(onewaytests)
+source("games.R")
+
+# Exercício 1
+
+# item a
+
+dados <- read.csv("reab_Plan2", sep=";")
+dados <- data.frame(dados$Dias,as.factor(dados$Media))
+names(dados) <- c("Dias", "Medias")
+
+fit.model<- lm(Dias~Medias, data=dados)
+t.anova <- Anova(fit.model,type="III")
+
+knitr::kable(caption = "Tabela de Anova", t.anova)
+
+# item b
+
+tapply(dados$Dias,dados$Medias,mean)
+
+# item c
+
+fit1.tk <- TukeyHSD(aov(fit.model), "Medias",conf.level = 0.99)
+plot(fit1.tk)
+
+# Exercicio 2
+
+# item c
+
+dt <- read.csv("coracao.csv",sep=";",dec=',')
+dt$Grupo <- as.factor(dt$Grupo)
+attach(dt)
+
+welch.test(Coracao~Grupo,data=dt,alpha = 0.1)
+
+tb <- games.howell(Grupo,Coracao)
+
+detach(dt)
+
+# Exercicio 3
+
+# item a
+
+dadosm <-read.csv('Mamoes.csv',sep=";",dec=",")
+dadosm$tempo <- as.factor(dadosm$tempo)
+dadosm$irradiacao <- as.factor(dadosm$irradiacao)
+dadosm$tratamento <- as.factor(dadosm$tratamento)
+
+attach(dadosm)
+
+m1 <- tapply(Acidez, irradiacao, mean)
+m2 <- tapply(Acidez, tempo, mean)
+m3 <- tapply(Acidez, tratamento, mean)
+
+d1 <- tapply(Acidez, irradiacao, sd)
+d2 <- tapply(Acidez, tempo, sd)
+d3 <- tapply(Acidez, tratamento, sd)
+
+me1 <- tapply(Acidez, irradiacao, median)
+me2 <- tapply(Acidez, tempo, median)
+me3 <- tapply(Acidez, tratamento, median)
+
+par(mfrow=c(1,2))
+boxplot(Acidez~tempo, main="Acidez x Tempo")
+boxplot(Acidez~irradiacao, main="Acidez x Irreadiação")
+
+par(mfrow=c(1,1))
+boxplot(Acidez~tratamento, main="Acidez x Tratamento")
+
+interaction.plot(tempo, irradiacao, Acidez,main="Interção tempo e irradiação")
+
+# item b
+
+fit.model1<- lm(Acidez~irradiacao*tempo)
+Anova(fit.model1,type="III")
+
+tb <- games.howell(tratamento,Acidez)
+
+detach(dadosm)
+
+# Exercicio 4
+
+# item b
+
+horm <- read.csv("horm.txt",sep=";")
+attach(horm)
+sexo <- factor(horm$sexo)
+desenvolvimentoosseo <- factor(horm$desenvolvimentoosseo)
+tratamento <- factor(horm$tratamento)
+
+fit.modelC<- lm(crescimento~sexo*desenvolvimentoosseo)
+Anova(fit.modelC,type="III")
+
+fit.modelI<- lm(crescimento~desenvolvimentoosseo)
+Anova(fit.modelI,type="III")
+
+# Diagnostico----------------------------------------------#
+
+X <- model.matrix(fit.modelC)
+n <- nrow(X)
+p <- ncol(X)
+H <- X%*%solve(t(X)%*%X)%*%t(X)
+h <- diag(H)
+lms <- summary(fit.modelC)
+s <- lms$sigma
+r <- resid(lms)
+ts <- r/(s*sqrt(1-h))
+di <- (1/p)*(h/(1-h))*(ts^2)
+si <- lm.influence(fit.modelC)$sigma
+tsi <- r/(si*sqrt(1-h))
+a <- max(tsi)
+b <- min(tsi)
+par(mfrow=c(2,2))
+
+plot(di,xlab="Indice", ylab="Distancia de Cook", pch=16)
+abline(h=3*mean(di),lty=3)
+
+plot(tsi,xlab="Indice", ylab="Residuo Padronizado",
+     ylim=c(-5,5), pch=16)
+abline(2,0,lty=2)
+abline(-2,0,lty=2)
+
+plot(fitted(fit.modelC),tsi,xlab="Valor Ajustado", 
+     ylab="Residuo Padronizado", ylim=c(-5,5), pch=16)
+abline(2,0,lty=2)
+abline(-2,0,lty=2)
+
+leveneTest(ts,tratamento)
+
+# Testes de normalidade
+
+shapiro.test(ts)
+
+ad.test(ts)
+
+# item d
+
+df <- summary(fit.modelI)$df[2]
+alpha <- 0.05
+n.comp <- 3
+qt(1-alpha/(2*n.comp),df)
+
+summary(fit.modelI)
+vcov(fit.modelI)
+
+detach(horm)
+
+# Exercicio 5
+
+# item b
+
+df <- read.csv("milho1.txt",sep=";")
+df$Fertilizante <- as.factor(df$Fertilizante)
+df$FertAntesM <- (df$FertAntes-2.14)
+df$Fert2M <- (df$FertAntesM*df$Fert2)
+df$Fert3M <- (df$FertAntesM*df$Fert3)
+color = c("red", "blue", "black")[df$Fertilizante]
+
+modeloancova <- lm(FertDepois~Fertilizante+FertAntesM,data=df)
+
+plot(df$FertAntes,df$FertDepois,col=color,pch=16)
+
+
+# Diagnostico----------------------------------------------#
+
+X <- model.matrix(modeloancova)
+n <- nrow(X)
+p <- ncol(X)
+H <- X%*%solve(t(X)%*%X)%*%t(X)
+h <- diag(H)
+lms <- summary(modeloancova)
+s <- lms$sigma
+r <- resid(lms)
+ts <- r/(s*sqrt(1-h))
+di <- (1/p)*(h/(1-h))*(ts^2)
+si <- lm.influence(modeloancova)$sigma
+tsi <- r/(si*sqrt(1-h))
+a <- max(tsi)
+b <- min(tsi)
+par(mfrow=c(2,2))
+plot(h,xlab="Indice", ylab="Medida h", pch=16, ylim=c(0,1.0))
+cut <- 3*p/n
+abline(cut,0,lty=2)
+
+plot(di,xlab="Indice", ylab="Distancia de Cook", pch=16)
+abline(h=3*mean(di),lty=3)
+
+plot(tsi,xlab="Indice", ylab="Residuo Padronizado",
+     ylim=c(-5,5), pch=16)
+abline(2,0,lty=2)
+abline(-2,0,lty=2)
+
+plot(fitted(modeloancova),tsi,xlab="Valor Ajustado", 
+     ylab="Residuo Padronizado", ylim=c(-5,5), pch=16)
+abline(2,0,lty=2)
+abline(-2,0,lty=2)
+
+par(mfrow=c(1,1))
+
+envelope <- function(fit0){
+  Influence <- lm.influence(fit0)
+  t.M <- resid(fit0)/(Influence$sigma*sqrt(1-Influence$hat))
+  n <- length(t.M)
+  X <- model.matrix(fit0)
+  H <- X%*%solve(t(X)%*%X)%*%t(X) 
+  I <- diag(n)
+  yy <- matrix(rnorm(n*100),n,100)
+  A <- matrix(0,n,100)
+  LI = LS = numeric(n)
+  A <- (I - H)%*%yy/sqrt(diag(I - H))
+  A <- apply(A,2,sort)
+  B <- t(apply(A,1,sort))
+  LI <- (B[,2]+B[,3])/2
+  LS <- (B[,97]+B[,98])/2
+  med <- apply(B,1,mean)
+  aux <- range(t.M,LS,LI)
+  #par(pty="s")
+  qqnorm(t.M,xlab="Percentil da N(0,1)", ylab="Ressíduo Studentizado modificado", ylim=aux,pch=16, main="")
+  par(new=TRUE)
+  qqnorm(LI,axes=F,xlab="",ylab="",type="l",lty=1,ylim=aux)
+  par(new=TRUE)
+  qqnorm(LS,axes=F,xlab="",ylab="", type="l", lty=1,ylim=aux)
+  par(new=TRUE)
+  qqnorm(med,axes=F,xlab="",ylab="",type="l",ylim=aux,lty=2)
+}
+
+envelope(modeloancova)
+
+summary(modeloancova)
+Anova(modeloancova,type="III")
+m.vcov.estparancova<- vcov(modeloancova)
+m.vcov.estparancova
+
+# item c
+
+modres <- lm(FertDepois~FertAntesM,data=df)
+
+model.matrix(modres)
+
+# item d
+
+modres.anova <- anova(modres)
+
+modcom <- lm(FertDepois~Fert2+Fert3+FertAntesM,data=df)
+modcom.anova <- anova(modcom)
+
+SQP <- modres.anova$Sum[2]-modcom.anova$Sum[4]
+SQP
+GLP <- modres.anova$Df[2]-modcom.anova$Df[4]
+GLP
+QMP <-SQP/GLP
+QMP
+FcalcP <- QMP/modcom.anova$Mean[4]
+FcalcP
+pvalorP <- 1 - pf(QMP, GLP, modcom.anova$Df[4])
+pvalorP
+
+# item f
+
+fit1 <- lm(FertDepois ~ Fert2 + Fert3 + FertAntesM + Fert2M + Fert3M, data=df)
+summary(fit1)
+
+fit1.anova <- anova(fit1)
+fit1.anova
+
+fit1.anova$Df
+fit1.anova$Sum
+
+SQParalel <- modcom.anova$Sum[4]-fit1.anova$Sum[6]
+SQParalel
+GLParalel <- modcom.anova$Df[4]-fit1.anova$Df[6]
+GLParalel
+QMParalel <-SQParalel/GLParalel
+QMParalel
+FcalcParalel <- QMParalel/fit1.anova$Mean[6]
+FcalcParalel
+pvalorParalel <- 1 - pf(FcalcParalel, GLParalel, fit1.anova$Df[6])
+pvalorParalel
+```
+
