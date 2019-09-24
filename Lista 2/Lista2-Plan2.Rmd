@@ -1,0 +1,569 @@
+---
+title: "Lista 2 - MAE0327"
+author: 'Guilherme NºUSP: 8943160 e Leonardo NºUSP: 9793436'
+output:
+  pdf_document:
+    fig_crop: no
+    keep_tex: yes
+    latex_engine: xelatex
+header-includes:
+- \usepackage{multirow}
+- \usepackage{ragged2e}
+- \usepackage{booktabs}
+---
+
+## Exercício 1
+
+Considere o seguinte conjunto de pesos de carcaças (kg) de coelhos (Padovani, 2002) segundo a raça dos coelhos e o tipo de dieta randomizada oferecida aos animais.
+
+\center
+\begin{tabular}{cccccc}
+\hline
+ & \multicolumn{5}{c}{Raça} \\ \cline{2-6} 
+Dieta & Norfolk & Angorá I & Angorá II & Nova Zelândia I & Nova Zelândia II \\ \hline
+Padrão & 1,28 & 1,08 & 1,06 & 1,36 & 1,19 \\
+Padrão+Rami & 1,45 & 1,15 & 1,28 & 1,50 & 1,41 \\
+Padrão+Alfafa & 1,38 & 1,08 & 1,17 & 1,43 & 1,26 \\ \hline
+\end{tabular}
+\justify
+
+(a) Há evidência de efeito de interação entre raça e dieta? Responda construindo um gráfico apropriado.
+
+### Resolução
+
+```{r,echo=F,out.width="75%",fig.align='center',message=FALSE}
+pesos <- c(1.28, 1.08, 1.06, 1.36, 1.19,
+           1.45, 1.15, 1.28, 1.50, 1.41,
+           1.38, 1.08, 1.17, 1.43, 1.26)
+raca <- c(rep(c("Norfolk","AngoráI","AngoráII","NovaZelândiaI","NovaZelândiaII"),3))
+dieta <- c(rep(c("Padrão"),5),rep(c("PadrãoRami"),5),rep(c("PadrãoAlfafa"),5))
+
+carcacas <- data.frame(pesos,raca,dieta)
+attach(carcacas)
+raca <- factor(raca)
+dieta <- factor(dieta)
+interaction.plot(raca,dieta,pesos, main="Efeito de Interação dos Fatores")
+```
+
+Pelo gráfico acima vemos que as retas aparentam ser paralelas, o que é um indicativo de que não há efeito de interação entre raça e dieta.
+
+(b) Ajuste um modelo de ANOVA que permita testar a hipótese de inexistência de efeito de dieta. Verifique se o modelo está bem ajustado.
+\newpage
+
+### Resolução
+
+Primeiramente é realizado o modelo:
+
+```{r,echo=F}
+fit.model1 <- lm(pesos~dieta+raca)
+summary(fit.model1)
+knitr::kable(caption = "Tabela de Anova",round(anova(fit.model1),4))
+```
+
+\newpage
+E por fim verificamos se o modelo está com as suposições de normalidade, homocedasticidade e independência:
+
+```{r,echo=F,out.width="75%",fig.align='center'}
+# Diagnóstico----------------------------------------------------#
+
+X <- model.matrix(fit.model1)
+n <- nrow(X)
+p <- ncol(X)
+H <- X%*%solve(t(X)%*%X)%*%t(X)
+h <- diag(H)
+lms <- summary(fit.model1)
+s <- lms$sigma
+r <- resid(lms)
+ts <- r/(s*sqrt(1-h))
+di <- (1/p)*(h/(1-h))*(ts^2)
+si <- lm.influence(fit.model1)$sigma
+tsi <- r/(si*sqrt(1-h))
+a <- max(tsi)
+b <- min(tsi)
+ident <- diag(n)
+epsilon <- matrix(0,n,100)
+e <- matrix(0,n,100)
+e1 <- numeric(n)
+e2 <- numeric(n)
+#
+for(i in 1:100){
+     epsilon[,i] <- rnorm(n,0,1)
+     e[,i] <- (ident - H)%*%epsilon[,i]
+     u <- diag(ident - H)
+     e[,i] <- e[,i]/sqrt(u)
+     e[,i] <- sort(e[,i]) }
+#
+for(i in 1:n){
+     eo <- sort(e[i,])
+     e1[i] <- (eo[2]+eo[3])/2
+     e2[i] <- (eo[97]+eo[98])/2 }
+#
+med <- apply(e,1,mean)
+faixa <- range(tsi,e1,e2)
+#
+par(mfrow=c(2,2))
+qqnorm(tsi,xlab="Percentil da N(0,1)",
+ylab="Residuo Studentizado", ylim=faixa, pch=16, main="")
+par(new=T)
+qqnorm(e1,axes=F,xlab="",ylab="",type="l",ylim=faixa,lty=1, main="")
+par(new=T)
+qqnorm(e2,axes=F,xlab="",ylab="", type="l",ylim=faixa,lty=1, main="")
+par(new=T)
+qqnorm(med,axes=F,xlab="",ylab="",type="l",ylim=faixa,lty=2, main="")
+#------------------------------------------------------------#
+plot(di,xlab="Índice", ylab="Distância de Cook", pch=16)
+#identify(di, n=2)
+#
+plot(tsi,xlab="Índice", ylab="Resíduo Studentizado",
+ylim=c(b-1,a+1), pch=16)
+abline(2,0,lty=2)
+abline(-2,0,lty=2)
+#identify(tsi, n=1)
+#
+plot(fitted(fit.model1),tsi,xlab="Valor Ajustado", 
+ylab="Resíduo Studentizado", ylim=c(b-1,a+1), pch=16)
+abline(2,0,lty=2)
+abline(-2,0,lty=2)
+#identify(fitted(fit.model),tsi, n=1)
+par(mfrow=c(1,1))
+```
+
+Pelos gráficos acima, as suposições se apresentam aceitas, mas ainda realizamos os testes de igualdade das variâncias e de normalidade:
+
+1. Igualdade das variâncias para a dieta:
+
+```{r,warning=F,echo=F,message=FALSE}
+# Teste para igualdade das variâncias--------------------------------------------#
+
+library(car)
+
+leveneTest(tsi,dieta)
+```
+
+2. Igualdade das variâncias para a raça:
+
+```{r,warning=F,echo=F}
+leveneTest(tsi,raca)
+```
+
+3. Igualdade das variâncias para os pesos:
+
+```{r,warning=F,echo=F}
+leveneTest(tsi,pesos)
+```
+
+\newpage
+4. Normalidade
+
+```{r,warning=F,echo=F}
+# Testes de normalidade---------------------------------------------------------#
+
+shapiro.test(tsi)
+
+library(nortest)
+
+ad.test(tsi)
+
+#-------------------------------------------------------------------------------#
+```
+
+Pode-se ver que para a dieta e a raça, com $\alpha$, a hipótese de homocedasticidade não é rejeitada. Pelo teste de igualdade de variâncias dos pesos, é de se esperar que há efeito de tratamento. Nos testes de normalidade, com um $\alpha$ = 5%, não é rejeitada a hipótese de normalidade.
+
+(c) Há evidência de diferença entre as dietas? Adote $\alpha$ = 5%.
+
+### Resolução
+
+Pela tabela obtida no item anterior, observa-se que há evidência de diferença entre as dietas, com $\alpha$=5%.
+
+(d) Caso haja evidência de diferença entre as dietas, compare-as duas a duas adotando o método de comparações míltiplas de Tukey ou Bonferroni. Procure usar o pacote R para realizar essas comparações. Verifique se os intervalos de confiança construídos pelo R são os mesmos obtidos pelo método apresentado nos slides de aula. Adote um coeficiente de confiança global igual a $\gamma$ = 95%.
+
+### Resolução
+
+```{r,out.width="70%", echo=F,fig.align='center'}
+fit.model2 <- aov(pesos~dieta+raca)
+fit1.tk <- TukeyHSD(fit.model2, "dieta")
+plot(fit1.tk)
+```
+
+Pelos intervalos obtidos conclui-se que:
+
+A dieta com Rami possui média maior que a dieta com Alfafa que por sua vez é maior que a dieta padrão.
+
+## Exercício 2
+
+O departamento de estradas de rodagem de certo estado estudou as características de 5 tipos de sinalização em 8 diferentes localidades do estado. A sinalização padrão (1) e quatro experimentais (2, 3, 4, 5) foram incluídas no estudo. As oito localidades foram aleatoriamente selecionadas, com a finalidade de refletirem variações na densidade de tráfego através do estado. Em cada localidade, as cinco sinalizações foram dispostas de forma aleatória. Após certo período de tempo, foi obtida uma medida que avaliava a durabilidade e a visibilidade das sinalizações. Os dados são os seguintes (quanto maior o escore, que variava de 0 a 50, melhor a avaliação):
+
+\center
+\begin{tabular}{cccccc}
+\hline
+ & \multicolumn{5}{c}{Sinal} \\ \cline{2-6} 
+Local & 1 & 2 & 3 & 4 & 5 \\ \hline
+1 & 11 & 13 & 10 & 18 & 15 \\
+2 & 20 & 28 & 15 & 30 & 18 \\
+3 & 8 & 10 & 8 & 16 & 12 \\
+4 & 30 & 35 & 27 & 41 & 28 \\
+5 & 14 & 16 & 13 & 22 & 16 \\
+6 & 25 & 27 & 26 & 33 & 25 \\
+7 & 43 & 46 & 41 & 55 & 42 \\
+8 & 13 & 14 & 12 & 20 & 13 \\ \hline
+\end{tabular}
+\justify
+
+(a) Há evidência de efeito de interação entre sinalização e localização? Responda construindo um gráfico apropriado.
+
+### Resolução
+
+```{r,echo=F,message=F,out.width="75%",fig.align='center'}
+avaliacao <- c(11 ,13 ,10 ,18 ,15,
+               20 ,28 ,15 ,30 ,18,
+               8 ,10 ,8 ,16 ,12,
+               30 ,35 ,27 ,41 ,28,
+               14 ,16 ,13 ,22 ,16,
+               25 ,27 ,26 ,33 ,25,
+               43 ,46 ,41 ,55 ,42,
+               13 ,14 ,12 ,20 ,13)
+sinal <- c(rep(1:5,8))
+local <- c(rep(1,5),rep(2,5),rep(3,5),rep(4,5),rep(5,5),rep(6,5),rep(7,5),rep(8,5))
+sinal <- factor(sinal)
+local <- factor(local)
+estradas <- data.frame(avaliacao,sinal,local)
+
+attach(estradas)
+
+interaction.plot(local,sinal,avaliacao, main="Efeito de Interação dos Fatores")
+```
+
+Pelo gráfico acima vemos que as retas são aproximadamente paralelas, o que indica o não efeito de interação entre o sinal e o local.
+
+\newpage
+(b) Ajuste um modelo aditivo para o plano em blocos completos balanceados (considere o efeito de bloco como aleatório e o de tratamento como fixo).
+
+### Resolução
+
+Ajustando o modelo aditivo para o planejamento em blocos (aleatórios), temos:
+
+```{r echo=FALSE,message=FALSE}
+library(nlme)
+
+fit.model2 <- lme(avaliacao~sinal, data = estradas, random= ~ 1 | local)
+
+summary(fit.model2)
+```
+
+(c) Supondo que o modelo aditivo é apropriado, obtenha a tabela de análise de variância.
+
+### Resolução
+
+Supondo que o modelo aditivo é apropriado segue a tabela de Anova:
+
+```{r echo=FALSE}
+knitr::kable(caption = "Tabela de Anova",round(anova(fit.model2),4))
+```
+
+\newpage
+(d) Teste a hipótese de que o escore médio não difere entre os cinco tipos de sinalização. Use $\alpha$ = 5%. Defina as hipóteses nula e alternativa, a regra de decisão e dê sua conclusão. Encontre o nível descritivo do teste.
+
+### Resolução
+
+Tomando o modelo $Y_{ij} = \mu + \rho_i + \alpha_j + e_{ij}$ com $i=1,...,k$ e $j=1,...,a$
+
+A hipótese a ser testada é: $$\left\{ \begin{array}{ll}
+H_0:\alpha_1 = ... = \alpha_a \\ 
+H_1: os \ \alpha_j \ nao \ sao \ todos \ nulos   \end{array} \right.\ $$ 
+E a estatística de teste é $$F^*=\frac{QMTR}{QMR}$$
+
+Onde $QMTR$ é o quadrado médio dos tratamentos
+
+e $QMR$ o quadrado médio dos resíduos
+
+Sob $H_0, \ F^* \sim F_{[a-1,(a-1)(k-1)]}$
+
+Rejeitamos $H_0$ quando o valor de $F^*$ é grande, porém como sabemos a distribuição de $F^*$ podemos calcular a $\mathbb{P}(F>F^*)$(**p-value**), fixando um nível de significância de 5%, se tal probabilidade for menor que 5% rejeitamos $H_0$.
+
+Pela tabela obtida no item anterior, observa-se que há evidência de diferença entre os tipos de sinalização, pois o **p-value**(nível descritivo do teste) é <0.0001 tomando um $\alpha$=5%.
+
+(e) Estime $\sigma^2_\rho$ por ponto e por intervalo.
+
+### Resolução
+
+Sabemos que o estimador não viesado para $\sigma^2_\rho$  é $\hat{\sigma^2_\rho}=\frac{QMBL-QMR}{a}$. 
+
+Onde $a$ é o número de tratamentos;
+
+$QMBL$ é o quadrado médio dos blocos
+
+$QMR$ é o quadrado médio residual e pode ser calculado:
+
+$\hat{\sigma^2_\rho}=\frac{689.48-4.366}{5}=\frac{685.115}{5}=137.023$
+
+E sua estimativa intervalar é:
+
+```{r echo=FALSE}
+IC <-intervals(fit.model2)$reStruct$local^2
+rownames(IC) <- "IC of Variance"
+knitr::kable(caption = "Estimativa Intervalar",round(IC,3))
+```
+
+\newpage
+(f) Caso haja evidência de efeito de sinalização, compare-as duas a duas adotando o método de comparações múltiplas de Tukey ou Bonferroni. Procure usar o pacote R para realizar essas comparações. Verifique se os intervalos de confiança construídos pelo R são os mesmos obtidos pelo método apresentado nos slides de aula. Adote um coeficiente de confiança global igual a $\gamma$ = 95%.
+
+### Resolução
+
+Como existe efeito de tratamento, segue as comparações multiplas pelo método de tukey encontrado no pacote **multcomp**:
+
+```{r echo=FALSE, message=FALSE}
+library(multcomp)
+
+knitr::kable(caption = "Comparações múltiplas",confint(glht(fit.model2, linfct=mcp(sinal="Tukey")))$confint)
+```
+ 
+(g) Compare o escore médio das sinalizações experimentais com o da padrão. Use o procedimento de comparações múltiplas mais eficiente, adotando um coeficiente de confiança global igual a 95%. Dê suas conclusões. Consulte o livro de Winer (1971) ou Winer et al. (1991).
+
+### Resolução
+
+Comparando o escore médio das sinalizações com padrão (sinal 1), utilizando o método de Dunnet que serve para comparar os tratamentos com o controle (sinal 1), temos as seguintes comparações: 
+
+```{r echo=FALSE}
+knitr::kable(caption = "Comparações múltiplas",confint(glht(fit.model2, linfct=mcp(sinal="Dunnet")))$confint)
+```
+
+(h) As sinalizações 1, 3 e 5 são brancas, enquanto que as 2 e 4 são amarelas. Estime a diferença entre os escores médios dos dois grupos através de um intervalo com 95% de confiança. Interprete o intervalo encontrado.
+
+### Resolução
+
+```{r echo=FALSE}
+
+```
+
+
+## Exercício 3
+
+Mostre que quando apenas dois tratamentos são considerados num plano em blocos completos casualizados, a estatística F para testar a hipótese de inexistência de efeito de tratamento é equivalente ao quadrado da estatística t de um teste bilateral para observações pareadas.
+
+### Resolução
+
+Como o modelo de blocos casualizados é $$y_{ij}=\mu+\rho_i+\alpha_j+e_{ij}$$ com $j=1,2$ tratamentos e $i=1,..,k$ blocos, com $e_{ij} \sim N(0,\sigma^2)$ queremos testar:
+
+$$\left\{ \begin{array}{ll}
+H_0:\alpha_1 = \alpha_2 \\ 
+H_1: \alpha_1 \ne \alpha_2  \end{array} \right.\ $$ 
+
+Equivalente a
+
+$$\left\{ \begin{array}{ll}
+H_0:\alpha_1 - \alpha_2 = 0\\ 
+H_1: \alpha_1 - \alpha_2 \ne 0  \end{array} \right.\ $$
+
+onde a estatística para testar tal hipótese é $F^*=\frac{QMTR}{QMR}=\frac{\frac{SQTR}{1}}{\frac{SQR}{k-1}}$
+
+E como sabemos que $SQTR \sim \chi^2_1$ e $SQR \sim \chi^2_{k-1}$ e também que a razão de duas deistribuições qui-quadrado dividido pelos seus graus de liberdade é uma F, temos $\frac{\frac{SQTR}{1}}{\frac{SQR}{k-1}} \sim F_{1,k-1}$, porém a se tomarmos a distribuição $\sqrt{\frac{\frac{SQTR}{1}}{\frac{SQR}{k-1}}} \sim t_{k-1}$, contudo a raiz da distribuição Qui-quadrado divido pelos seus graus de liberdade tem distribuição t-student, logo se $F^* \sim F_{1,k-1}$ então $\sqrt{F^*} \sim t_{k-1}$.
+
+## Exercício 4
+
+Um pesquisador está estudando o efeito da idade de castração no desenvolvimento e produção de suínos, avaliando-se o peso dos leitões. Quatro tratamentos foram estudados:
+
+A - castração aos 56 dias de idade;
+
+B - castração aos 7 dias de idade;
+
+C - castração aos 36 dias de idade;
+
+D - inteiros (não castrados);
+
+E - castração aos 21 dias de idade.
+
+Foi utilizado o delineamento em quadrado latino buscando controlar a variação entre leitegadas/ninhadas (linhas) e a variação no peso inicial dos leitões (colunas), sendo a parcela experimental constituída de dois leitões. Os ganhos de pesos, em kg, após o período experimental (28 semanas), estão apresentados na tabela que segue.
+
+\center
+\begin{tabular}{cccccc}
+\hline
+\multicolumn{6}{c}{Peso inicial} \\ \hline
+Leitegada & 1 & 2 & 3 & 4 & 5 \\ \hline
+1 & A (93; 93,5) & C (115,4; 115,8) & E (116,9; 116,3) & D (110,2; 110,5) & B (110,4; 110,6) \\
+2 & C (110,6; 110,9) & E (96,5; 96,7) & B (108,9; 109,0) & A (97,6; 98,1) & D (112,0; 110,8) \\
+3 & B (102,1; 101,8) & D (108,6; 108,0) & A (77,9; 78,5) & E (102,0; 102,5) & C (111,7; 111,0) \\
+4 & D (115,4; 114,9) & A (94,9; 95,3) & C (114,0; 114,7) & B (100,2; 99,9) & E (118,5; 118,0) \\
+5 & E (117,6; 118,3) & B (114,1; 113,8) & D (118,7; 119,2) & C (108,8; 108,1) & A (80,2; 79,7) \\ \hline
+\end{tabular}
+\justify
+
+(a) Justifique o motivo do pesquisador escolher Leitegada e Peso inicial como fatores de bloco.
+
+### Resolução
+
+Como dito no enunciado, foram utilizados essas variáveis com a finalidade de controlar a variação. Provavelmente o pesquisador tem indícios que as variáveis influenciam no valor de ganho de peso após o período experimental.
+
+(b) Escreva o modelo de ANOVA apropriado.
+
+### Resolução
+$$Y_{ijk} = \mu + \alpha_i + \beta_j + \gamma_k + e_{ijk},$$
+$$i = 1, . . . , p$$
+
+$$j = 1, . . . , p$$
+$$k = 1, . . . , p$$
+
+sendo
+$\alpha_i$: efeito da linha $L_i$;
+
+$\beta_j$: efeito da coluna $C_j$;
+
+$\gamma_k$: efeito do tratamento $T_k$.
+
+Neste caso $p=4$, a linha se refere a leitegada, a coluna ao peso inicial e o tratamento é o momento da castração.
+
+(c) Teste se os tratamentos afetam o ganho de peso.
+
+### Resolução
+
+Primeiramente é feito o modelo, referente ao item anterior:
+
+```{r,echo=F,message=F}
+Peso <- c(93,93.5,115.4,115.8,116.9,116.3,110.2,110.5,110.4,110.6,
+           110.6,110.9,96.5,96.7,108.9,109.0,97.6,98.1,112.0,110.8,
+           102.1,101.8,108.6,108.0,77.9,78.5,102.0,102.5,111.7,111.0,
+           115.4,114.9,94.9,95.3,114.0,114.7,100.2,99.9,118.5,118.0,
+           117.6,118.3,114.1,113.8,118.7,119.2,108.8,108.1,80.2,79.7)
+
+Leitegada <- c(rep(1,10),rep(2,10),rep(3,10),rep(4,10),rep(5,10))
+
+Peso_inicial <- c(rep(c(rep(1,2),rep(2,2),rep(3,2),rep(4,2),rep(5,2)),5))
+
+Trat <- c(rep(c("A","C","E","D","B",
+          "C","E","B","A","D",
+          "B","D","A","E","C",
+          "D","A","C","B","E",
+          "E","B","D","C","A"),2))
+
+Castracao <- data.frame(Peso,Leitegada,Peso_inicial,Trat)
+attach(Castracao)
+Trat <- factor(Castracao$Trat)
+
+fit.model<- lm(Peso~Peso_inicial+Leitegada+Trat)
+summary(fit.model)
+knitr::kable(caption = "Tabela de Anova",round(anova(fit.model),4))
+```
+
+Logo, rejeita-se a hipótese referente a não presença de efeito de tratamento. O momento em que a castração é feita altera os ganhos de pesos após o período experimental. Nota-se também que os blocos utilizados não foram tão eficientes para a análise, pois seus quadrados médios possuem valores relativamente baixos.
+
+(d) Realize uma análise completa dos dados.
+
+### Resolução
+
+O próximo passo na análise será comparar os tratamentos e ver quais inflenciam mais na variável resposta. Mas antes realizaremos a análise de resíduos:
+
+```{r,echo=F,message=F,warning=F,out.width="70%",fig.align='center'}
+X <- model.matrix(fit.model)
+n <- nrow(X)
+p <- ncol(X)
+H <- X%*%solve(t(X)%*%X)%*%t(X)
+h <- diag(H)
+lms <- summary(fit.model)
+s <- lms$sigma
+r <- resid(lms)
+ts <- r/(s*sqrt(1-h))
+di <- (1/p)*(h/(1-h))*(ts^2)
+si <- lm.influence(fit.model)$sigma
+tsi <- r/(si*sqrt(1-h))
+a <- max(tsi)
+b <- min(tsi)
+ident <- diag(n)
+epsilon <- matrix(0,n,100)
+e <- matrix(0,n,100)
+e1 <- numeric(n)
+e2 <- numeric(n)
+#
+for(i in 1:100){
+     epsilon[,i] <- rnorm(n,0,1)
+     e[,i] <- (ident - H)%*%epsilon[,i]
+     u <- diag(ident - H)
+     e[,i] <- e[,i]/sqrt(u)
+     e[,i] <- sort(e[,i]) }
+#
+for(i in 1:n){
+     eo <- sort(e[i,])
+     e1[i] <- (eo[2]+eo[3])/2
+     e2[i] <- (eo[97]+eo[98])/2 }
+#
+med <- apply(e,1,mean)
+faixa <- range(tsi,e1,e2)
+#
+par(mfrow=c(2,2))
+qqnorm(tsi,xlab="Percentil da N(0,1)",
+ylab="Residuo Studentizado", ylim=faixa, pch=16, main="")
+par(new=T)
+qqnorm(e1,axes=F,xlab="",ylab="",type="l",ylim=faixa,lty=1, main="")
+par(new=T)
+qqnorm(e2,axes=F,xlab="",ylab="", type="l",ylim=faixa,lty=1, main="")
+par(new=T)
+qqnorm(med,axes=F,xlab="",ylab="",type="l",ylim=faixa,lty=2, main="")
+#------------------------------------------------------------#
+plot(di,xlab="Índice", ylab="Distância de Cook", pch=16)
+#identify(di, n=2)
+#
+plot(tsi,xlab="Índice", ylab="Resíduo Studentizado",
+ylim=c(b-1,a+1), pch=16)
+abline(2,0,lty=2)
+abline(-2,0,lty=2)
+#identify(tsi, n=1)
+#
+plot(fitted(fit.model),tsi,xlab="Valor Ajustado", 
+ylab="Resíduo Studentizado", ylim=c(b-1,a+1), pch=16)
+abline(2,0,lty=2)
+abline(-2,0,lty=2)
+#identify(fitted(fit.model),tsi, n=1)
+par(mfrow=c(1,1))
+```
+
+Aparentemente há um pequeno problema na normalidade mas a suposição de independência e homocedasticidade estão satisfeitas. Faremos então os testes de igualdade das variâncias e de normalidade. Teste de igualdade de variâncias para a variável peso inicial:
+
+```{r,echo=F,message=F,warning=F,out.width="70%"}
+# Teste para igualdade das variâncias--------------------------------------------#
+
+library(car)
+
+leveneTest(tsi,Peso_inicial)
+```
+
+para a leitegada:
+
+```{r,echo=F,message=F,warning=F,out.width="70%"}
+leveneTest(tsi,Leitegada)
+```
+
+e por fim, para o tratamento:
+
+```{r,echo=F,message=F,warning=F,out.width="70%"}
+leveneTest(tsi,Trat)
+```
+
+Notemos que não há grandes problemas nos dois primeiros testes e no último, com um nível de significância de 5%, não rejeita-se a hipótese de homocedasticidade. Testando a normalidade:
+
+```{r,echo=F,message=F,warning=F,out.width="70%"}
+# Testes de normalidade---------------------------------------------------------#
+
+shapiro.test(tsi)
+
+```
+
+Pelo teste de Shapiro-Wilk, não rejeita-se a hipótese de normalidade. Realizamos então as comparações múltiplas:
+
+```{r, echo=F, message=F}
+library(ExpDes.pt)
+dql(Trat, Peso_inicial, Leitegada, Peso, quali = TRUE, mcomp = "ccf", sigT = 0.10, sigF = 0.05)
+```
+
+Verifica-se então que o ganho é menor quando há uma castração aos 56 dias de idade do que nos demais tratamentos, nos quais aparecem estatísticamente iguais.
+
+## Exercício 5
+
+a) Justifique a afirmação de que para p = 4 existem 4 formas padrão de um Quadrado Latino.
+
+### Resolução
+
+Pela definição de formas padrão em um Quadrado Latino, a primeira linha e a primeira coluna possuem a mesma distribuição e não importa a ordem dos tratamentos desde que a condição esteja satisfeita. Dessa forma no espaço da segunda linha e segunda coluna é possível 3 tratamentos (excluindo o tratamento que foi colocado na primeira linha e segunda coluna e o da segunda linha e primeira coluna), dessa forma, se o tratamento for igual ao tratamento da primeira linha e primeira coluna, há duas possibilidades possíveis. Entretanto se o tratamento for igual o da terceira ou quarta linha/coluna há apenas uma possibilidade para cada uma. Resultando em 4 formas padrão para um Quadrado Latino 4x4.
+
+b) Justifique a afirmação de que para p = 4 o número de total de Quadrados Latinos diferentes é 576.
+
+### Resolução
+
+Utilizando o fato de haver 4 formas padrão e de as variações serem representadas por $p!*(p-1)!$, pois na primeira linha são possíveis $p!$ permutações e na primeira coluna, como a primeira linha já foi definida possui $p-1!$ permutações, logo existem $4!*3!=144$ permutações possíveis para a primeira linha e primeira coluna em um Quadrado Latino 4x4. Por fim multiplicamos as permutações pelas possíveis formas padrão, $4*144=576$.
