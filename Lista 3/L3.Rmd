@@ -1,0 +1,385 @@
+---
+title: "Lista 3 - MAE0327"
+author: 'Guilherme NºUSP: 8943160 e Leonardo NºUSP: 9793436'
+output:
+  pdf_document:
+    fig_crop: no
+    keep_tex: yes
+    latex_engine: xelatex
+header-includes:
+- \usepackage{multirow}
+- \usepackage{ragged2e}
+- \usepackage{booktabs}
+---
+
+# Exercício 1
+
+Um engenheiro químico deseja avaliar a eficácia de nove formulações alternativas de um detergente em termos da duração da espuma durante o uso. Três pias estavam disponíveis e três pessoas foram instruídas a usar as pias para lavar pratos a uma taxa constante. Cada bloco consistia em três unidades experimentais em que a unidade experimental foi uma das pias com uma quantidade fixa de água potável e uma quantidade fixa de sujeira agregada. Três formulações de detergentes foram aleatoriamente designadas para as três pias em cada bloco. A variável resposta (Y) foi a duração da espuma medida pelo número de pratos lavados antes dela desaparecer. O engenheiro utilizou o desenho de blocos incompletos balanceados que segue. Analise os dados deste experimento e tire conclusões.
+
+\center
+\begin{tabular}{cccccccc}
+\hline
+ & \multicolumn{3}{c}{Formulação} &  & \multicolumn{3}{c}{Y} \\ \cline{2-4} \cline{6-8} 
+Bloco & Pia 1 & Pia 2 & Pia 3 &  & Pia 1 & Pia 2 & Pia 3 \\ \hline
+1 & 3 & 8 & 4 &  & 13 & 20 & 7 \\
+2 & 4 & 9 & 2 &  & 6 & 29 & 17 \\
+3 & 3 & 6 & 9 &  & 15 & 23 & 31 \\
+4 & 9 & 5 & 1 &  & 31 & 26 & 20 \\
+5 & 2 & 7 & 6 &  & 16 & 21 & 23 \\
+6 & 6 & 5 & 4 &  & 23 & 26 & 6 \\
+7 & 9 & 8 & 7 &  & 28 & 19 & 21 \\
+8 & 7 & 1 & 4 &  & 20 & 20 & 7 \\
+9 & 6 & 8 & 1 &  & 24 & 19 & 20 \\
+10 & 5 & 8 & 2 &  & 26 & 19 & 17 \\
+11 & 5 & 3 & 7 &  & 24 & 14 & 19 \\
+12 & 3 & 2 & 1 &  & 11 & 17 & 19 \\ \hline
+\end{tabular}
+\justify
+
+## Resolução
+
+Primeiramente iremos fazer uma análise descritiva, assim:
+
+```{r echo=FALSE,message=FALSE,out.width="65%",fig.align='center'}
+
+dados <- read.csv("dados.csv")
+dados$Bloco <- as.factor(dados$Bloco)
+dados$Formulacao <- as.factor(dados$Formulacao)
+dados$Pia <- as.factor(dados$Pia)
+
+attach(dados)
+boxplot(Y~Formulacao,main = "Formulação x Reposta",xlab = "Formulação",data = dados)
+```
+
+Com o boxplot acima podemos notar que a variabilidade das formulações estão relativamente controladas e que os valores medianos são bem diferentes entre si.
+
+```{r echo=FALSE,message=FALSE,out.width="70%",fig.align='center'}
+
+library(lattice) 
+
+with(dados, xyplot(Y ~ Formulacao | Pia,main="Disperção fomulação por pia",xlab="Formulação"))
+```
+
+E com o gráfico acima é possível confirmar que possuem valores diferentes por formulação em cada pia separadamente.
+
+E a seguinte tabela reforça ainda essas conclusões:
+
+\center
+\begin{tabular}{cccc}
+\hline
+\textbf{Formulação} & \textbf{Média} & \textbf{Desvio Padrão} & \textbf{Mediana} \\ \hline
+1                   & 19.75          & 0.5                    & 20               \\
+2                   & 16.75          & 0.5                    & 17               \\
+3                   & 13.25          & 1.708                  & 13.5             \\
+4                   & 6.5            & 0.577                  & 6.5              \\
+5                   & 25.5           & 1                      & 26               \\
+6                   & 23.25          & 0.5                    & 23               \\
+7                   & 20.25          & 0.957                  & 20.5             \\
+8                   & 19.25          & 0.5                    & 19               \\
+9                   & 29.75          & 1.5                    & 30               \\ \hline
+\end{tabular}
+\justify
+
+
+Feito a análise descritiva, iremos fazer o ajuste do modelo onde temos que:
+\newline
+
+\center
+$K=3$ (número de unidades experimentais por bloco) 
+
+$t=9$ (número de tratamentos)
+
+$b=12$ (número de blocos)
+
+$r=3$ (número de repetições do tratamento)
+
+$\lambda = 1$ (número de vezes em que 2 tratamentos aparecem juntos num mesmo bloco)
+
+$N=36$ (número total de unidades experimentais)
+\justify
+
+\newpage
+Obtemos a tabela de ANOVA:
+
+```{r echo=FALSE,message=FALSE,}
+library(car)
+library(nlme)
+library(lmerTest)
+library(agricolae)
+
+model <- lm(Y~Bloco+Formulacao+Pia)
+
+knitr::kable(caption = "Tabela de ANOVA",round(Anova(model,type="III"),3))
+```
+
+onde pode-se ver que a formulação é um efeito significante para o experimento. E o Bloco e a Pia podem entrar como fatores de controle, como é feito a seguir:
+
+```{r echo=FALSE,message=FALSE,}
+BIBSlide.aov <- aov(Y ~ Formulacao + Error(Bloco/Pia))
+summary(BIBSlide.aov)
+```
+
+Nota-se que se considerarmos o Bloco e a Pia como fator de erro, a Formulação é mais significante se considerarmos apenas o Bloco. Continuando a análise obtemos: 
+
+```{r echo=FALSE,message=FALSE,}
+BIB.test(Bloco, Formulacao, Y, test = c("tukey"),
+         alpha = 0.05, group = TRUE,console=T)
+detach(dados)
+```
+
+Pelas comparações múltiplas de Tukey, agrupamos as formulações em 4 grupos:
+
+A nona formulação que possui valores mais altos, em seguida dos valores da quinta, sexta, sétima, primeira, oitava e segunda formulações que são maiores que a terceira formulação, que por sua vez é maior que a quarta formulação.
+
+# Exercício 2
+
+Explique como a relação $\lambda(t-1)=r(k-1)$ foi definida num planejamento em blocos incompletos balanceados. Consultar Kuehl, R. O. (1999). *Design of Experiments: Statistical Principles of Research Design and Analysis.* 2nd ed. Duxbury Press.
+
+## Resolução
+
+A relação $\lambda(t-1)=r(k-1)$ foi definida num planejamento em blocos incompletos balanceados pelo fato de que todos os tratamentos sejam igualmente replicados e cada par de tratamento no mesmo bloco o que resulta em igual precisão para todas as comparações. Assim o delineamento que possui *r* repetições de tratamentos *t* em *b* blocos de *k* unidades experimentais com $k<t$, terá o número total de unidades experimentais de $N=rt=bk$. O número de blocos em que cada par de tratamentos ocorre juntos é $\lambda=r(k-1)/(t-1)$ em que $\lambda < r < b$. O valor de $\lambda$ vem do fato de que cada tratamento está pareado com outros *t-1* tratamentos no delineamento $\lambda$ vezes e existem $\lambda(t-1)$ pares pra algum tratamento no experimento, assim o mesmo tratamento aparece em *r* blocos com *k-1* outros tratamentos, e cada tratamento aparece em *r(k-1)* pares. Então $$\lambda(t-1)=r(k-1) \Rightarrow \lambda=\frac{r(k-1)}{t-1}$$
+
+# Exercício 3
+
+Um experimento foi conduzido para determinar o efeito da temperatura e do tempo de aquecimento na força de tração do aço. Duas temperaturas e três tempos de aquecimento foram selecionados. O experimento foi conduzido da seguinte forma: um forno foi aquecido a uma temperatura escolhida ao acaso e três porções de aço foram colocadas no forno. Depois de 10 minutos uma porção foi removida, depois de 20 minutos outra porção foi removida, e depois de 30 minutos a última porção foi removida. Em seguida, a temperatura do forno foi mudada para o outro nível e o processo foi repetido. Todas as porções foram então submetidas à tração. Para coletar todos os dados, exibidos na tabela a seguir, foi necessário repetir o experimento 4 vezes. 
+
+\center
+\begin{tabular}{|c|c|c|c|}
+\hline
+\multicolumn{4}{|c|}{\textbf{Tabela. Dados}} \\ \hline
+\multirow{2}{*}{Repetição} & \multirow{2}{*}{\begin{tabular}[c]{@{}c@{}}Tempo\\ (minutos)\end{tabular}} & \multicolumn{2}{c|}{Temperatura (graus F)} \\ \cline{3-4} 
+ &  & 1500 & 1600 \\ \hline
+\multirow{3}{*}{1} & 10 & 63 & 89 \\ \cline{2-4} 
+ & 20 & 54 & 91 \\ \cline{2-4} 
+ & 30 & 61 & 62 \\ \hline
+\multirow{3}{*}{2} & 10 & 50 & 80 \\ \cline{2-4} 
+ & 20 & 52 & 72 \\ \cline{2-4} 
+ & 30 & 59 & 69 \\ \hline
+\multirow{3}{*}{3} & 10 & 48 & 73 \\ \cline{2-4} 
+ & 20 & 74 & 81 \\ \cline{2-4} 
+ & 30 & 71 & 69 \\ \hline
+\multirow{3}{*}{4} & 10 & 54 & 88 \\ \cline{2-4} 
+ & 20 & 48 & 92 \\ \cline{2-4} 
+ & 30 & 59 & 64 \\ \hline
+\end{tabular}
+\justify
+
+(a) Qual planejamento você pode associar a este experimento? Defina a unidade experimental.
+
+## Resolução
+
+Pode-se olhar esse experimento como do tipo Split-Plot. E cada Plot possui 3 unidades experimentais: 10, 20 e 30 minutos.
+
+(b) Faça uma análise descritiva dos dados.
+
+## Resolução
+
+Fazendo a análise descritiva, temos:
+
+```{r echo=FALSE,message=FALSE,out.width="51%",fig.align='center'}
+Dados2 <- read.csv("dados2.csv")
+Dados2$Temperatura <- as.factor(Dados2$Temperatura)
+Dados2$Tempo <- as.factor(Dados2$Tempo)
+Dados2$Rep <- as.factor(Dados2$Rep)
+
+boxplot(Y~Temperatura, main="Temperatura x Força de Atração",ylab = "Força de Atração",data = Dados2)
+```
+
+```{r echo=FALSE,message=FALSE,out.width="70%",fig.align='center'}
+library(lattice) 
+
+with(Dados2, xyplot(Y ~ Temperatura | Tempo,main="Disperção por unidades de tempo"))
+
+with(Dados2, xyplot(Y ~ Temperatura | Tempo, groups = Rep, aspect = "xy", type = "o",main="Interação entre temperatura e força de atração"))
+```
+
+\center
+
+**Medidas Descritivas**
+
+\begin{tabular}{ccccccccc}
+\cline{1-4} \cline{6-9}
+\multicolumn{1}{l}{\textbf{Temperatura}} & \multicolumn{1}{l}{\textbf{Média}} & \multicolumn{1}{l}{\textbf{Desvio Padrão}} & \multicolumn{1}{l}{\textbf{Mediana}} & \multicolumn{1}{l}{\textbf{}} & \multicolumn{1}{l}{\textbf{Tempo}} & \multicolumn{1}{l}{\textbf{Média}} & \multicolumn{1}{l}{\textbf{Desvio Padrão}} & \multicolumn{1}{l}{\textbf{Mediana}} \\ \cline{1-4} \cline{6-9} 
+1500 & 57.75 & 8.49 & 56.6 &  & 10 & 68.12 & 16.71 & 68 \\
+1600 & 77.5 & 10.75 & 76.5 &  & 20 & 70.5 & 17.43 & 73 \\ \cline{1-4}
+ &  &  &  &  & 30 & 64.25 & 4.8 & 63 \\ \cline{6-9} 
+ &  &  &  &  &  &  &  &  \\ \cline{1-4}
+\textbf{Rep} & \textbf{Média} & \textbf{Desvio Padrão} & \textbf{Mediana} &  &  &  &  &  \\ \cline{1-4}
+1 & 70 & 15.82 & 62.5 &  &  &  &  &  \\
+2 & 63.67 & 11.91 & 64 &  &  &  &  &  \\
+3 & 69.33 & 11.22 & 72 &  &  &  &  & \multicolumn{1}{l}{} \\
+4 & 67.5 & 18.26 & 61.5 &  &  &  &  & \multicolumn{1}{l}{} \\ \cline{1-4}
+\end{tabular}
+\justify
+
+Com a análise descritiva acima podemos notar que o valor mediano da temperatura de 1500 ºF é menor do que o valor mediano da temperatura de 1600 ºF, desconsiderando o tempo. Para cada tempo separadamente, observamos que ao tempo de 10 minutos todas as replicas possuem valores menores para a temperatura de 1500 ºF. Ao tempo de 20 minutos apenas uma réplica da temperatura de 1500 ºF possui valor na força de tração do aço proxímo aos valores de 1600 ºF. Já, com 30 minutos de aquecimento os valores se apresentam próximos nas duas temperaturas.
+
+(c) Escreva a equação de um modelo apropriado para a análise dos dados. Não esqueça de descrever os fatores de interesse, seus respectivos níveis e a variável resposta. 
+
+## Resolução
+
+O modelo apropriado é: 
+
+$$y_{ijk} = \mu + \alpha_i + \rho_{k(i)} + \beta_j + (\alpha \beta)_{ij} + e_{ijk}, $$
+$$
+i = 1,2,3,4; j = 1,2; k = 1,2,3
+$$
+
+em que, $\mu$ é a média da variável resposta sob a casela de referência; $\alpha_i$ é o efeito fixo do nível i do fator de Repetição; $\beta_j$ é o efeito fixo do nível j do fator Temperatura; $(\alpha \beta)_{ij}$ é o efeito de interação entre o nível i do fator de Repetição e o nível j do fator Temperatura e $\rho_{k(i)}$ é o efeito aleatório do tempo no nível k hierárquico ao nível i do fator de Repetição. $y_{ijk}$ é a força de tração do aço na i-ésima Repetição, j-ésima Temperatura e k-ésimo tempo.
+
+(d) Ajuste o modelo proposto e faça uma análise de sua adequação.
+
+## Resolução
+
+Observando o resíduo de Pearson, temos: 
+
+```{r echo=FALSE,message=FALSE,fig.align='center',out.width="70%"}
+library(nlme)
+library(car)
+
+fit <- lme(Y ~ Temperatura*Tempo, random = ~1| Rep, data = Dados2)
+
+plot(fit, main="Resíduos x Preditos",ylab="Resíduos Studentizados",xlab="Valores preditos")
+
+qqPlot(residuals(fit),envelope=.95,xlab="Quantis Normais", ylab = "Resíduos de Pearson", main="Evelope simulado com 95% de confiança")
+```
+
+Verificamos então que os resíduos estão independentes e sem nenhum problema com a normalidade.
+
+(e) Teste as hipóteses de interesse, assumindo que os fatores temperatura e tempo de aquecimento têm efeitos fixos. 
+
+## Resolução
+
+```{r, echo=FALSE}
+summary(fit)
+knitr::kable(caption = "Anova",round(anova(fit),3))
+```
+
+Em que podemos notar que existe efeito de interação e de temperatura a um nível de significância de 5%.
+
+(f) Realize comparações múltiplas quando necessário.
+
+## Resolução
+
+Como existe efeito no fator temperatura iremos realizar comparações múltiplas:
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+library(multcomp)
+
+knitr::kable(caption = "Comparações multiplas 1",confint(glht(fit, linfct=mcp(Temperatura="Tukey",interaction_average = T)))$confint
+)
+```
+
+Em que podemos notar que o efeito da temperatura 1600 ºF é maior na força de atração do aço do que a temperatura de 1500 ºF.
+
+Para o efeito de intreração temos:
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+library(multcomp)
+
+contrast.matrix <- rbind("Temperatura1600:Tempo20 - Temperatura1600:Tempo30" =  c(0, 0, 0,  0, -1, 1))
+
+knitr::kable(caption = "Comparações multiplas 2",confint(glht(fit, contrast.matrix))$confint)
+```
+
+Em que a interação da temperatura 1600 ºF com o Tempo 20 minutos é menor que a interação da temperatura 1600 ºF com o Tempo 30 minutos.
+
+\newpage
+# Códigos
+
+```{r,eval=FALSE}
+
+library(lattice) 
+library(car)
+library(nlme)
+library(lmerTest)
+library(multcomp)
+library(agricolae)
+
+# Exercício 1
+dados <- read.csv("dados.csv")
+dados$Bloco <- as.factor(dados$Bloco)
+dados$Formulacao <- as.factor(dados$Formulacao)
+dados$Pia <- as.factor(dados$Pia)
+
+attach(dados)
+
+# analise descritiva
+boxplot(Y~Formulacao,main = "Formulação x Reposta",xlab = "Formulação",data = dados)
+
+with(dados, xyplot(Y ~ Formulacao | Pia,main="Disperção fomulação por pia",xlab="Formulação"))
+
+tapply(Y,Formulacao,mean)
+tapply(Y,Formulacao,sd)
+tapply(Y,Formulacao,median)
+
+model <- lm(Y~Bloco+Formulacao+Pia)
+
+round(Anova(model,type="III"),3)
+
+BIBSlide.aov <- aov(Y ~ Formulacao + Error(Bloco/Pia))
+summary(BIBSlide.aov)
+
+BIB.test(Bloco, Formulacao, Y, test = c("tukey"),
+         alpha = 0.05, group = TRUE,console=T)
+detach(dados)
+
+# Exercício 3
+
+# item b
+Dados2 <- read.csv("dados2.csv")
+Dados2$Temperatura <- as.factor(Dados2$Temperatura)
+Dados2$Tempo <- as.factor(Dados2$Tempo)
+Dados2$Rep <- as.factor(Dados2$Rep)
+
+attach(Dados2)
+boxplot(Y~Temperatura, main="Temperatura x Força de Atração",
+        ylab = "Força de Atração",data = Dados2)
+
+with(Dados2, xyplot(Y ~ Temperatura | Tempo,
+                    main="Disperção por unidades de tempo"))
+
+with(Dados2, xyplot(Y ~ Temperatura | Tempo, groups = Rep, aspect = "xy",
+                    type = "o",
+                    main="Interação entre temperatura e força de atração"))
+
+tapply(Y,Temperatura,mean)
+tapply(Y,Temperatura,sd)
+tapply(Y,Temperatura,median)
+
+tapply(Y,Tempo,mean)
+tapply(Y,Tempo,sd)
+tapply(Y,Tempo,median)
+
+tapply(Y,Rep,mean)
+tapply(Y,Rep,sd)
+tapply(Y,Rep,median)
+
+# item d
+
+fit <- lme(Y ~ Temperatura*Tempo, random = ~1| Rep, data = Dados2)
+
+plot(fit, main="Resíduos x Preditos",ylab="Resíduos Studentizados",
+     xlab="Valores preditos")
+
+qqPlot(residuals(fit),envelope=.95,xlab="Quantis Normais", 
+       ylab = "Resíduos de Pearson",
+       main="Evelope simulado com 95% de confiança")
+
+# item e
+summary(fit)
+round(anova(fit),3)
+
+# item f
+
+confint(glht(fit, linfct=mcp(Temperatura="Tukey",
+                             interaction_average = T)))$confint
+
+contrast.matrix <- rbind("Temperatura1600:Tempo20 - Temperatura1600:Tempo30" = 
+                           c(0, 0, 0,  0, -1, 1))
+
+confint(glht(fit, contrast.matrix))$confint
+
+detach(Dados2)
+```
+
