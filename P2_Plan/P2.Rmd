@@ -1,0 +1,690 @@
+---
+title: "MAE0327 - PLANEJAMENTO E PESQUISA II - Prova 2"
+author: 'Guilherme NºUSP: 8943160 e Leonardo NºUSP: 9793436'
+date: "26 de novembro de 2019"
+output: pdf_document
+header-includes:
+- \usepackage{multirow}
+- \usepackage{ragged2e}
+---
+
+# Exercício 1
+
+Um estudo foi realizado com 10 ratos. Cinco ratos foram selecionados para compor o Grupo I e os cinco restantes, o Grupo II. Todos os ratos do Grupo II tiveram os pelos da cabeça raspados e receberam uma dose de certa proteína responsável por crescimento ósseo. Em conjunto com essa proteína receberam a aplicação de 4 materiais, denominados BC, BO, CE e CO, respectivamente, que  também   ajudam  no  crescimento  ósseo.  Cada  material  foi  aplicado aleatoriamente numa região da cabeça do animal. Os ratos do Grupo I foram tratados da mesma forma que os do Grupo II, exceto quanto à dose da proteína, que não foi aplicada nesses animais. Os dados obtidos constam da Tabela 1. Deseja-se  comparar  grupos  e  materiais  com  respeito  à  média da  variável resposta BV $(mm^3)$ avaliada em cada rato de cada grupo, sob cada material.
+
+\center
+Tabela 1: BV $(mm^3)$
+\begin{tabular}{ccccccccc}
+\hline
+\multicolumn{9}{c}{Material} \\ \hline
+ & \multicolumn{2}{c}{BC} & \multicolumn{2}{c}{BO} & \multicolumn{2}{c}{CE} & \multicolumn{2}{c}{CO} \\ \cline{2-9} 
+Indivíduo & GI & GII & GI & GII & GI & GII & GI & GII \\ \hline
+1 & 12.214 & 34.118 & 12.513 & 16.582 & 17.385 & 28.288 & 5.645 & 7.308 \\
+2 & 14.978 & 28.456 & 10.446 & 15.879 & 14.698 & 21.649 & 5.476 & 13.120 \\
+3 & 22.412 & 29.843 & 16.100 & 15.401 & 13.878 & 20.837 & 2.288 & 6.366 \\
+4 & 19.355 & 15684 & 10.155 & 17.651 & 19.207 & 28.819 & 11.676 & 8.015 \\
+5 & 12.701 & 21.964 & 17.881 & 11.049 & 19.461 & 16.806 & 12.261 & 8.093 \\ \hline
+\end{tabular}
+\justify
+
+### Resolução
+
+Iniciando a análise com o histograma da variável resposta, com o intuito de verificar a distribuição aproximada dos dados:
+
+```{r,echo=F,out.width="65%",fig.align='center', message=F}
+library(readr)
+library(tidyr)
+library(ggplot2)
+
+dados <- read_csv("BV.csv", locale = locale(decimal_mark = ",",grouping_mark = "."))
+
+attach(dados)
+dados$Material <- as.factor(dados$Material)
+dados$Grupo <- as.factor(dados$Grupo)
+dados$Individuo <- as.factor(dados$Individuo)
+dados$Trat <- as.factor(dados$Trat)
+
+# Analise descritiva
+
+dados %>%
+  ggplot(aes(x=BV)) +
+  geom_histogram(fill="blue", alpha=0.5, position="identity",color="Black",bins=9) +
+  labs(x="BV(mm3)",
+       y="Frequência",
+       title="Gráfico 1: Histograma da variável BV(mm3)")
+```
+
+Para os dados observados no Gráfico 1, pode-se ver uma distribuição simétrica e com a média,moda e mediana aproximadamente iguais a 15.
+
+Em seguida, é obtido o Boxplot por Grupo:
+
+```{r,echo=F,out.width="70%",fig.align='center', message=F}
+dados %>%
+  ggplot(aes(y=BV,x=Grupo)) +
+  geom_boxplot(color="Black") +
+  geom_boxplot(fill = c("tan1","tan4")) +
+  labs(x="Grupo",
+       y="BV",
+       title="Gráfico 2: Boxplot por grupo")
+```
+
+Nota-se que no Gráfico 2 o valor mediano do Grupo 1 é um pouco menor que o Grupo 2.
+
+Então, é feito o Boxplot por Material:
+
+```{r,echo=F,out.width="70%",fig.align='center', message=F}
+dados %>%
+  ggplot(aes(y=BV,x=Material)) +
+  geom_boxplot(color="Black") +
+  geom_boxplot(fill = c("gold1","gold2","gold3","gold4")) +
+  labs(y="BV", 
+       x="Material",
+       title="Gráfico 3: Boxplot por material")
+```
+
+No Gráfico 3 os valores medianos de BC e CE são próximos e maiores que o valor mediano de BO, que por sua vez é maior do que o de CO.
+\newline
+\center
+Tabela 2: Medidas Descritivas por Grupo
+\begin{tabular}{ccccc}
+\hline
+Grupo & n & Média & Mediana & Desvio-Padrão \\ \hline
+I & 5 & 13.54 & 13.29 & 5.17 \\
+II & 5 & 18.30 & 16.69 & 8.29 \\ \hline
+\end{tabular}
+\justify
+
+\center
+Tabela 3: Medidas Descritivas por Material
+\begin{tabular}{ccccc}
+\hline
+Material & n & Média & Mediana & Desvio-Padrão \\ \hline
+BC & 10 & 21.17 & 20.66 & 7.61 \\
+BO & 10 & 14.37 & 15.64 & 3.02 \\
+CE & 10 & 20.10 & 19.33 & 5.09 \\
+CO & 10 & 8.02 & 7.66 & 3.43 \\ \hline
+\end{tabular}
+\justify
+
+```{r echo=FALSE, eval=FALSE}
+tapply(BV,Grupo,mean)
+tapply(BV,Grupo,median)
+tapply(BV,Grupo,sd)
+
+round(tapply(BV,Material,mean),2)
+round(tapply(BV,Material,median),2)
+round(tapply(BV,Material,sd),2)
+
+```
+
+Pelas Tabelas 2 e 3, pode-se notar que o tamanho de cada grupo em cada material é insuficiente para construir um Boxplot, sendo assim foi feito dotplot:
+
+```{r,echo=F,out.width="70%",fig.align='center', message=F}
+dados %>%
+  ggplot(aes(x=Material, y=BV, fill=Grupo)) +
+  geom_dotplot(binaxis='y', stackdir='center',binwidth = 1)+
+  scale_fill_manual(values=c("black", "white")) +
+  labs(x="Material",
+       y="BV",
+       title="Gráfico 4: Dotplot por grupo")
+```
+
+Pelo Gráfico 4 nota-se que nos materiais BC e CE, a maioria dos pontos do Grupo 2 estão a cima dos pontos do Grupo 1. Para os materias BO e CO há uma sobreposição de pontos.
+\newpage
+Criando o gráfico de interação entre Grupo e Material:
+
+```{r,echo=F,out.width="70%",fig.align='center', message=F}
+dados %>%
+  ggplot(aes(x = Material , y=BV , group = Grupo, linetype = Grupo)) +
+  stat_summary(fun.y=mean, geom="point") +
+  stat_summary(fun.y=mean, geom="line") +
+  labs(x="Material",
+       y="Média de BV",
+       title="Gráfico 5: Intereção entre grupo e material")
+```
+
+Consegue-se ver que no Gráfico 5 as linhas dos Grupos estão suavemente paralelas, sugerindo a ausência de interação entre Grupo e Material.
+
+Desenvolvendo o gráfico de interação entre indivíduos do Grupo 1 e Material:
+
+```{r,echo=F,out.width="70%",fig.align='center', message=F}
+int1 <- subset(dados,Grupo=="G1")
+int1 %>%
+  ggplot(aes(x = Material , y=BV , group = factor(Trat),linetype=factor(Trat))) +
+  stat_summary(fun.y=mean, geom="point") +
+  stat_summary(fun.y=mean, geom="line") +
+  labs(x="Material",
+       y="Média de BV",
+       title="Gráfico 6: Intereção entre grupo e indivíduo no grupo 1",
+       linetype="Indivíduo")
+```
+
+No Gráfico 6, suavemente as retas dos indivíduos estão paralelas.
+\newpage
+O mesmo é feito para o Grupo 2:
+
+```{r,echo=F,out.width="70%",fig.align='center', message=F}
+int2 <- subset(dados,Grupo=="G2")
+int2 %>%
+  ggplot(aes(x = Material , y=BV , group = factor(Trat),linetype=factor(Trat))) +
+  stat_summary(fun.y=mean, geom="point") +
+  stat_summary(fun.y=mean, geom="line") +
+  labs(x="Material",
+       y="Média de BV",
+       title="Gráfico 7: Intereção entre grupo e indivíduo no grupo 2",
+       linetype="Indivíduo")
+```
+
+Assim como no Gráfico 6 no Gráfico 7, as retas são aproximadamente paralelas.
+
+Uma distribuição aproximadamente normal parece apropriada para a variável resposta. Para tal verificação é feito o teste de Shapiro-Wilk, em que as hipóteses podem ser definidas como:
+
+$$\left\{ \begin{array}{ll}
+H_{0}: Os \ dados \ seguem \ uma \ distribuic \tilde{a}o \ Normal  \\
+H_{1}: Os \ dados \ seguem \ n	\tilde{a}o \ uma \ distribuic \tilde{a}o \ Normal \end{array} \right.\ $$
+
+```{r,eval=F,echo=F,out.width="70%",fig.align='center', message=F}
+shapiro.test(BV)
+```
+
+\center
+Tabela 4: Teste Shapiro
+\begin{tabular}{ll}
+\hline
+W & $p-value$ \\ \hline
+0.96785 & 0.3069 \\ \hline
+\end{tabular}
+\justify
+
+Observando a Tabela 4 obtemos um p-valor de 0.3069, logo não rejeita-se a hipótese de normalidade. Portanto é possível realizar uma análise de variância para o conjunto de dados.
+
+A natureza do banco de dados induz a considerar o planejamento com medidas repitidas com um fator Material com 4 níveis, caracterizando 4 grupos, BC, BO, CE, CO. Suponde que cada grupo esteja submetido 5 unidades experimentais (indivíduos) em que cada uma delas seja avaliada sob 2 tratamentos. Estes tratamentos caracterizam 2 níveis do fator Grupo (com ou sem proteína responsável pelo crescimento ósseo). O modelo do caso é dado por parametrização de casela de referência:
+
+$$Y_{ijk}=\mu_1 + \alpha_i + \rho_{k(i)} + \beta_j + (\alpha \beta)_{ij} + e_{ijk}$$
+
+Com $i=1,2$; $j=1,...,4$; $k=1,...,5$,
+
+$\mu_1$ é a média do Grupo 1 no Material BC (grupo de referência)
+
+$\alpha_i$: efeito fixo do Grupo $i$;
+
+$\beta_j$: efeito fixo do Material $j$;
+
+$(\alpha \beta)_{ij}$ : efeito de interação entre o Grupo $i$ e o Material $j$;
+
+$\rho_{k(i)}$: efeito aleatório do indivíduo $k$ dentro do Grupo $i$.
+
+Suposições
+
+$e_{ijk} \sim N(0, \sigma^2)$, independentes;
+
+$\rho_{k(i)} \sim N(0, \sigma^2_{\rho})$
+
+$e_{ijk}$, $\rho_{k(i)}$ são independentes.
+
+Restrições
+
+$\alpha_1=0, \ \beta_1=0,\ \sum_i (\alpha \beta)_{i1}=0, \ \sum_j (\alpha \beta)_{1j}=0$,
+com $i=1,2$; $j=1,...,4$; $k=1,...,5$.
+
+Ajustando o modelo a cima, obtemos a seguinte tabela de ANOVA:
+
+\center
+Tabela 5: ANOVA modelo completo
+\begin{tabular}{cccccc}
+\hline
+FV & SQ & gl & QM & F & $p-value$ \\ \hline
+Grupo & 244.76 & 1 & 244.76 & 10.83 & 0.011 \\
+Resíduo 1 & 180.8 & 8 & 22.60 &  &  \\
+Material & 1098 & 3 & 366 & 20.53 & \textless{}0.0001 \\
+Grupo*Material & 120.9 & 3 & 40.3 & 2.26 & 0.1076 \\
+Resíduo 2 & 427.92 & 24 & 17.83 &  &  \\ \hline
+Total & 2072.4 & 39 &  &  &  \\ \hline
+\end{tabular}
+\justify
+
+```{r,echo=F,message=FALSE}
+# Carrega pacotes necessarios
+require(nlme)
+
+# Ajusta o modelo e obt?m estat?stica e n?vel descritivo do efeitos dos fatoresde interesse. 
+Modelo1<- lme(BV ~ Grupo*Material, random = ~1| Trat, data=dados)
+#summary(Modelo1)
+```
+
+```{r,echo=F, eval=FALSE}
+anova(Modelo1)
+```
+
+Pela Tabela 5 de ANOVA pode-se ver que não há efeito de interação, fixando um nível de significância global igual a 0.06. Logo o modelo é reduzido a uma forma mais simples sem efeito de interação entre Grupo e Material:
+
+$$Y_{ijk}=\mu_1 + \alpha_i + \rho_{k(i)} + \beta_j + e_{ijk}$$
+Com $i=1,2$; $j=1,...,4$; $k=1,...,5$.
+
+E sua tabela de ANOVA:
+
+\center
+Tabela 6: ANOVA modelo reduzido
+\begin{tabular}{cccccc}
+\hline
+FV & SQ & gl & QM & F & $p-value$ \\ \hline
+Grupo & 244.76 & 1 & 244.76 & 10.83 & 0.011 \\
+Resíduo 1 & 180.8 & 8 & 22.60 &  &  \\
+Material & 1097.89 & 3 & 365.96 & 18.01 & \textless{}0.0001 \\
+Resíduo 2 & 548.64 & 27 & 20.32 &  &  \\ \hline
+Total & 2072.4 & 39 &  &  &  \\ \hline
+\end{tabular}
+\justify
+
+```{r, echo=F}
+Modelo2<- lme(BV ~ Grupo+Material, random = ~1| Trat, data=dados)
+#summary(Modelo2)
+```
+
+```{r echo=F, eval=FALSE}
+anova(Modelo2)
+```
+
+Pelos dados obtidos na tabela 6, Grupo e Material são significantes a um nível de significância global de 6%.
+
+Também foi calculado $p-value$ do teste da hipótese de que a matriz de covariâncias para cada indivíduo é esférica: $<0.0001$.
+
+É feito a análise de resíduos para verificar se o modelo está bem ajustado:
+
+```{r,echo=F,message=F,warning=F}
+source('residdiag_nlme.R')  
+```
+
+\center
+\includegraphics[width=450pt]{/home/gui/res1.png}
+\justify
+
+Pelos gráficos 8 e 9, os resíduos confundidos estão dentro da normalidade desejada.
+
+\center
+\includegraphics[width=450pt]{/home/gui/res2.png}
+\justify
+
+```{r,echo=F,message=F,eval=FALSE}
+residdiag.nlme( Modelo2, limit=2, plotid=4)
+```
+
+No Gráfico 10 pela distância de Mahalanobis, não existe pontos influentes.
+
+\center
+\includegraphics[width=450pt]{/home/gui/res3.png}
+\justify
+
+```{r,echo=F,message=F,eval=FALSE}
+residdiag.nlme( Modelo2, limit=2, plotid=5)
+```
+
+Os gráficos 11 e 12 representam a homocedasticidade e normalidade dos resíduos condicionais.
+
+\center
+\includegraphics[width=450pt]{/home/gui/res4.png}
+\justify
+
+```{r,echo=F,message=F,eval=F}
+residdiag.nlme( Modelo2, limit=2, plotid=7)
+```
+
+Pode-se notar pelo gráfico 13 dos resíduos condicionais que há um ponto mais distante dos demais, entretanto não é preocupante para a inferência do modelo.
+
+\center
+\includegraphics[width=450pt]{/home/gui/res5.png}
+\justify
+
+```{r,echo=F,message=F,eval=F}
+residdiag.nlme( Modelo2, limit=2, plotid=3)
+```
+
+Pode-se notar pelo gráfico 14 que os quantis da distância de Mahalanobia estão todos dentro da banda de confianca da distribuição Qui-quadrado o que indica que o modelo está bem ajustado de modo geral, não só olhando residuos específicos.
+
+```{r,echo=F, eval=FALSE}
+library(ez)
+Modelo3 <- ezANOVA(data = dados, dv = BV, wid = Trat, within = .(Material), between = Grupo)
+Modelo3
+```
+
+A seguir é feito as comparações múltiplas de Bonferroni para comparar os Grupos 1 e 2:
+
+```{r,echo=F,eval=F}
+t<-4 #Numero de níveis do fator material
+QMR2<-Modelo2$sig^2
+
+Sig2rho<- 0.3880708^2 
+
+QMR1<-QMR2+t*Sig2rho
+# comp. mult. grupo
+
+mean.g <- tapply(BV,Grupo,mean)
+mean.m <- tapply(BV,Material,mean)
+
+g <- 2
+gl <- 2*4
+C <- qt(1-(0.05/(2*g)),gl)
+
+
+mean.g[1]-mean.g[2] - C*sqrt((2/(5*4))*QMR1)
+mean.g[1]-mean.g[2] + C*sqrt((2/(5*4))*QMR1)
+```
+
+\center
+Tabela 7: Comparações múltiplas Grupo
+\begin{tabular}{cc}
+\hline
+Grupo & IC \\ \hline
+$\mu_{G1} - \mu_{G2}$ & {[}(13.54-18.30) $\pm$ 3.98{]} \\ \hline
+\end{tabular}
+\justify
+
+Na Tabela 7 pelo intervalo, a média do Grupo 2 é maior que a média do Grupo 1, há um nível de significância global de 95%. Logo ao utilizar a proteína para crescimento ósseo, o crescimento é controlado:
+
+$$
+\mu_{G2} > \mu_{G1}
+$$
+
+O mesmo é feito para comparar os Materiais BC,BO,CE,CO dois a dois conforme na tabela abaixo:
+
+\center
+Tabela 8: Comparações múltiplas Material
+\begin{tabular}{cc}
+\hline
+Material & IC \\ \hline
+$\mu_{BC} - \mu_{BO}$ & {[}(21.17-14.36) $\pm$ 5.79{]} \\
+$\mu_{BC} - \mu_{CE}$ & {[}(21.17-20.10) $\pm$ 5.79{]} \\
+$\mu_{BC} - \mu_{CO}$ & {[}(21.17-8.02) $\pm$ 5.79{]} \\
+$\mu_{BO} - \mu_{CE}$ & {[}(14.36-20.10) $\pm$ 5.79{]} \\
+$\mu_{BO} - \mu_{CO}$ & {[}(14.36-8.02) $\pm$ 5.79{]} \\
+$\mu_{CE} - \mu_{CO}$ & {[}(20.10-8.02) $\pm$ 5.79{]} \\ \hline
+\end{tabular}
+\justify
+
+```{r,echo=F,eval=F}
+# para material
+
+g <- 6
+gl <- 2*4*3
+C <- qt(1-(0.05/(2*g)),gl)
+
+
+mean.m[1]-mean.m[2] - C*sqrt((2/(5*2))*QMR2)
+mean.m[1]-mean.m[2] + C*sqrt((2/(5*2))*QMR2)
+
+
+mean.m[1]-mean.m[3] - C*sqrt((2/(5*2))*QMR2)
+mean.m[1]-mean.m[3] + C*sqrt((2/(5*2))*QMR2)
+
+mean.m[1]-mean.m[4] - C*sqrt((2/(5*2))*QMR2)
+mean.m[1]-mean.m[4] + C*sqrt((2/(5*2))*QMR2)
+
+mean.m[2]-mean.m[3] - C*sqrt((2/(5*2))*QMR2)
+mean.m[2]-mean.m[3] + C*sqrt((2/(5*2))*QMR2)
+
+mean.m[2]-mean.m[4] - C*sqrt((2/(5*2))*QMR2)
+mean.m[2]-mean.m[4] + C*sqrt((2/(5*2))*QMR2)
+
+mean.m[3]-mean.m[4] - C*sqrt((2/(5*2))*QMR2)
+mean.m[3]-mean.m[4] + C*sqrt((2/(5*2))*QMR2)
+```
+
+
+Após a análise feita na Tabela 8, conclui-se que:
+
+A média de BC é maior que BO que por sua vez é maior que CO, além disso, a média de BC é igual à média de CE, a média de BO é igual a de CE. Por fim, a média de CE é maior que a média de CO.
+
+$$
+\mu_{BC} > \mu_{BO}> \mu_{CO}
+$$
+$$
+\mu_{BC}=\mu_{CE}
+$$
+$$
+\mu_{BO}=\mu_{CE}
+$$
+$$
+\mu_{CE} > \mu_{CO}
+$$
+
+# Exercício 2
+
+Um pesquisador deseja comparar 8 tratamentos em blocos contendo apenas 3 tratamentos . Descreva um planejamento para o experimento.
+
+### Resolução
+
+Pelo desejo do pesquisador, o modelo de blocos incompletos balanceados é adequado, sendo descrito por:
+
+$$
+y_{ij} = \mu + \rho_i + \alpha_j + e_{ij},\ i = 1, . . . ,b,\ j = 1, . . . , 8
+$$
+em que:
+
+$\mu$ uma constante;
+
+$\rho_i$ o efeito do i-ésimo bloco;
+
+$\alpha_j$ o efeito do j-ésimo tratamento;
+
+$e_{ij}$ erros aleatórios independentes com distribuição $N(0, \sigma^2)$.
+
+Considerando todos os efeitos fixos, temos as seguintes restrições:
+
+$$
+\sum_{i=1}^b \rho_i = \sum_{j=1}^8\alpha_j=0
+$$
+
+Pelo problema:
+
+$t=8$ (número de tratamentos)
+
+$k=3$ (número de unidades experimentais por bloco)
+
+Primeiramente, calcula-se o número de blocos pela expressão:
+
+$b =\bigl(\begin{smallmatrix} t\\ k \end{smallmatrix}\bigr) = \bigl(\begin{smallmatrix} 8\\ 3 \end{smallmatrix}\bigr) = 8!/(5!3!) = 56$
+
+Portanto para a realização do experimento, um chute inicial de quantos blocos serão necessários é de 56 blocos. Dessa forma podemos encontrar:
+
+N: número total de unidades experimentais
+
+r: número de repetições do tratamento
+
+$\lambda$: número de vezes em que 2 tratamentos aparecem juntos num mesmo bloco
+
+Pelas expressões:
+
+$N = bk = 56*3 = 168$
+
+$r = (bk)/t = (56*3)/8 = 21$
+
+$\lambda = r(k-1)/(t-1) = 21*(3-1)/(8-1) = 21*2/7 = 6$
+
+É possível tentar reduzir o número de blocos, diminuindo o número de repetições do tratamento, utilizando a expressão:
+
+$\lambda = r(k-1)/(t-1)$
+
+Se $\lambda = 5$, $5 = 2r/7$, ou seja, $r = 17.5$ (impossível)
+
+Se $\lambda = 4$, $4 = 2r/7$, ou seja, $r = 14$ (inteiro). Com $\lambda = 4$, $r = 14$, $t = 8$, $k = 3$, temos $b = rt/k = 14*8/3 = 37.33$ (impossível).
+
+Se $\lambda = 3$, $3 = 2r/7$, ou seja, $r = 10.5$ (impossível)
+
+Se $\lambda = 2$, $2 = 2r/7$, ou seja, $r = 7$ (inteiro). Com $\lambda = 2$, $r = 7$, $t = 8$, $k = 3$, temos $b = 2r/k = 7*8/3 = 18.66$ (impossível).
+
+Se $\lambda = 1$, $1 = 2r/7$, ou seja, $r = 3.5$ (impossível)
+
+Desta forma, não foi possível reduzir o número de blocos. Conclui-se então que para o pesquisador realizar o experimento com 8 tratamentos, em blocos contendo apenas 3 tratamentos serão necessários 168 indivíduos e 56 blocos nos quais os tratamentos irão se repetir 21 vezes e os tratamentos aparecerão juntos no mesmo bloco 6 vezes.
+
+# Exercício 3
+
+Considere o modelo de medidas repetidas Caso 3 apresentado nos slides que podem ser encontrados no $edisciplinas.usp.br$. Calcule a $Cov(Y_{iik}, Y_{ij'k’})$, para $j\ne j'$ e $k\ne k'$.
+
+### Resolução
+
+O modelo do caso é dado por:
+
+$$Y_{ijk}=\mu + \rho_i + \alpha_j + \beta_k + (\alpha \beta)_{jk} + (\rho \alpha)_{ij} + (\rho \beta)_{ik} + e_{ijk}$$
+
+Com $i=1,..,n$; $j=1,...,a$; $k=1,...,b$,
+
+$\mu$ é uma constante;
+
+$\rho_i$: efeito da unidade experimental $i$, $\rho_i \sim N(0, \sigma^2_{\rho})$, independentes;
+
+$\alpha_j$: efeito do nível $j$ do fator (fixo) A, $\sum_j \alpha_j = 0$;
+
+$\beta_k$: efeito do nível $k$ do fator (fixo) B, $\sum_k \beta_k = 0$;
+
+$(\alpha \beta)_{jk}$ : efeito de interação entre o nível j do fator A e o nível $k$ do fator B, $\sum_j (\alpha \beta)_{jk} = 0$, para todo $k$ e $\sum_k (\alpha \beta)_{jk} = 0$, para todo $j$;
+
+$(\rho \alpha)_{ij} \sim N(0,\frac{a-1}{a}\sigma^2_{\rho \alpha})$, com $\sum_j (\rho \alpha)_{ij} = 0$, $i=1,...,n$ e
+$cov[(\rho \alpha)_{ij}, (\rho \alpha)_{ij'}] = -\frac{1}{a}\sigma^2_{\rho \alpha}$ para $j\ne j'$;
+
+$(\rho \beta)_{ik} \sim N(0,\frac{b-1}{b}\sigma^2_{\rho \beta})$, com $\sum_k (\rho \beta)_{ik} = 0$, $i=1,...,n$ e
+$cov[(\rho \beta)_{ik}, (\rho \beta)_{ik'}] = -\frac{1}{b}\sigma^2_{\rho \beta}$ para $k\ne k'$;
+
+$e_{ijk} \sim N(0, \sigma^2)$, independentes;
+
+$e_{ijk}$, $\rho_i$, $(\rho \alpha)_{ij}$ e $(\rho \beta)_{ik}$ são independentes dois a dois.
+
+Assim pela definição de covariância, temos:
+
+$$Cov(Y_{iik}, Y_{ij'k’})=E(Y_{iik}Y_{ij'k’})-E(Y_{iik})E(Y_{ij'k’})$$
+Calculando primeiramente $E(Y_{iik}Y_{ij'k’})$, temos:
+
+$$E(Y_{iik}Y_{ij'k’})=E[(\mu + \rho_i + \alpha_j + \beta_k + (\alpha \beta)_{jk} + (\rho \alpha)_{ij} + (\rho \beta)_{ik} + e_{ijk})(\mu + \rho_i + \alpha_{j'} + \beta_{k'} + (\alpha \beta)_{j'k'} + (\rho \alpha)_{ij'} + (\rho \beta)_{i'k'} + e_{ij'k'})]$$
+$=E(\mu^2 + \mu\rho_i + \mu\alpha_{j'} + \mu\beta_{k'} + \mu(\alpha \beta)_{j'k'} + \mu(\rho \alpha)_{ij'} + \mu(\rho \beta)_{ik'} + \mu e_{ij'k'}$
+
+$+\rho_i\mu + \rho_i^2 + \rho_i\alpha_{j'} + \rho_i\beta_{k'} + \rho_i(\alpha \beta)_{j'k'} + \rho_i(\rho \alpha)_{ij'} + \rho_i(\rho \beta)_{ik'} + \rho_ie_{ij'k'}$
+
+$+\alpha_j\mu + \alpha_j\rho_i + \alpha_j\alpha_{j'} + \alpha_j\beta_{k'} + \alpha_j(\alpha \beta)_{j'k'} + \alpha_j(\rho \alpha)_{ij'} + \alpha_j(\rho \beta)_{ik'} + \alpha_je_{ij'k'}$
+
+$+\beta_k\mu + \beta_k\rho_i + \beta_k\alpha_{j'} + \beta_k\beta_{k'} + \beta_k(\alpha \beta)_{j'k'} + \beta_k(\rho \alpha)_{ij'} + \beta_k(\rho \beta)_{ik'} + \beta_ke_{ij'k'}$
+
+$+(\alpha \beta)_{jk}\mu + (\alpha \beta)_{jk}\rho_i + (\alpha \beta)_{jk}\alpha_{j'} + (\alpha \beta)_{jk}\beta_{k'} + (\alpha \beta)_{jk}(\alpha \beta)_{j'k'} + (\alpha \beta)_{jk}(\rho \alpha)_{ij'} + (\alpha \beta)_{jk}(\rho \beta)_{ik'} + (\alpha \beta)_{jk}e_{ij'k'}$
+
+$+(\rho \alpha)_{ij}\mu + (\rho \alpha)_{ij}\rho_i + (\rho \alpha)_{ij}\alpha_{j'} + (\rho \alpha)_{ij}\beta_{k'} + (\rho \alpha)_{ij}(\alpha \beta)_{j'k'} + (\rho \alpha)_{ij}(\rho \alpha)_{ij'} + (\rho \alpha)_{ij}(\rho \beta)_{ik'} + (\rho \alpha)_{ij}e_{ij'k'}$
+
+$+(\rho \beta)_{ik}\mu + (\rho \beta)_{ik}\rho_i + (\rho \beta)_{ik}\alpha_{j'} + (\rho \beta)_{ik}\beta_{k'} + (\rho \beta)_{ik}(\alpha \beta)_{j'k'} + (\rho \beta)_{ik}(\rho \alpha)_{ij'} + (\rho \beta)_{ik}(\rho \beta)_{ik'} + (\rho \beta)_{ik}e_{ij'k'}$
+
+$+e_{ijk}\mu + e_{ijk}\rho_i + e_{ijk}\alpha_{j'} + e_{ijk}\beta_{k'} + e_{ijk}(\alpha \beta)_{j'k'} + e_{ijk}(\rho \alpha)_{ij'} + e_{ijk}(\rho \beta)_{ik'} + e_{ijk}e_{ij'k'})$
+\newline
+
+Como temos que $e_{ijk}$, $\rho_i$, $(\rho \alpha)_{ij}$ e $(\rho \beta)_{ik}$ são independentes dois a dois, logo a esperança dos seus produtos é zero e que as mesmos parâmetros aleatórios tem distribuição Normal com média zero, temos que:
+
+$$E(Y_{iik}Y_{ij'k’})=\mu^2 + \mu\alpha_{j'} + \mu\beta_{k'} + \mu(\alpha \beta)_{j'k'}+E(\rho_i^2) + \alpha_j\mu + \alpha_j\alpha_{j'} + \alpha_j\beta_{k'}+ \alpha_j(\alpha \beta)_{j'k'}+ \beta_k\mu + \beta_k\alpha_{j'}+ \beta_k\mu$$
+
+$+ \beta_k\alpha_{j'} + \beta_k\beta_{k'} + \beta_k(\alpha \beta)_{j'k'} + (\alpha \beta)_{jk}\mu+ (\alpha \beta)_{jk}\alpha_{j'} + (\alpha \beta)_{jk}\beta_{k'} + (\alpha \beta)_{jk}(\alpha \beta)_{j'k'}+ E[(\rho \alpha)_{ij}(\rho \alpha)_{ij'}]$
+
+$+E[(\rho \beta)_{ik}(\rho \beta)_{ik'}]$ (I)
+\newline
+
+Agora iremos calcular $E(Y_{iik})E(Y_{ij'k’})$:
+
+Temos que: $E(Y_{iik})=\mu+\alpha_j+\beta_k+(\alpha \beta)_{jk}$ (somente as partes fixas), assim:
+
+$$E(Y_{iik})E(Y_{ij'k’})=(\mu+\alpha_j+\beta_k+(\alpha \beta)_{jk})(\mu+\alpha_{j'}+\beta_{k'}+(\alpha \beta)_{j'k'})$$
+$$=\mu^2+\mu\alpha_{j'}+\mu\beta_{k'}+\mu(\alpha \beta)_{j'k'}+
+\alpha_j\mu+ \alpha_j\alpha_{j'}+ \alpha_j\beta_{k'}+ \alpha_j(\alpha \beta)_{j'k'}+
+\beta_k\mu+ \beta_k\alpha_{j'}+ \beta_k\beta_{k'}+ \beta_k(\alpha \beta)_{j'k'}$$
+
+$+(\alpha \beta)_{jk}\mu+ (\alpha \beta)_{jk}\alpha_{j'}+ (\alpha \beta)_{jk}\beta_{k'}+ (\alpha \beta)_{jk}(\alpha \beta)_{j'k'}$ (II).
+
+Agora fazendo (I)-(II), tem-se que:
+
+$$Cov(Y_{iik}, Y_{ij'k’})=E[\rho_i^2]+E[(\rho \alpha)_{ij}(\rho \alpha)_{ij'}]+E[(\rho \beta)_{ik}(\rho \beta)_{ik'}] $$
+
+Em que, pela difinição de variância, temos:
+
+$$Var(\rho_i)=E[\rho_i^2] - E[\rho_i]^2=E[\rho_i^2]-0^2=\sigma^2_{\rho}$$
+
+E pela definição de covariância, temos:
+
+$$Cov((\rho \alpha)_{ij},(\rho \alpha)_{ij'})=E[(\rho \alpha)_{ij}(\rho \alpha)_{ij'}]-E[(\rho \alpha)_{ij}]E[(\rho \alpha)_{ij'}]=E[(\rho \alpha)_{ij}(\rho \alpha)_{ij'}]=-\frac{1}{a}\sigma^2_{\rho \alpha} \ \forall \ j\ne j'$$ 
+
+Analogamente para $Cov((\rho \beta)_{ik},(\rho \beta)_{ik'})=-\frac{1}{b}\sigma^2_{\rho \beta} \ \forall \ k\ne k'$
+\newline
+Por fim, 
+$$Cov(Y_{iik}, Y_{ij'k’})=\sigma^2_{\rho}-\frac{1}{a}\sigma^2_{\rho \alpha} -\frac{1}{b}\sigma^2_{\rho \beta} \ \forall \ j\ne j' \ e \ k\ne k'_{\blacksquare}$$
+\newpage
+
+# Anexo
+
+## Saídas do R
+
+```{r, warning=FALSE,message=FALSE}
+library(readr)
+library(nlme)
+library(ez)
+
+dados <- read_csv("BV.csv", locale = locale(decimal_mark = ",",grouping_mark = "."))
+
+attach(dados)
+dados$Material <- as.factor(dados$Material)
+dados$Grupo <- as.factor(dados$Grupo)
+dados$Individuo <- as.factor(dados$Individuo)
+dados$Trat <- as.factor(dados$Trat)
+
+# Teste shapiro
+
+shapiro.test(BV)
+
+# Modelo completo com os efeitos dos fatores de interesse. 
+Modelo1<- lme(BV ~ Grupo*Material, random = ~1| Trat, data=dados)
+summary(Modelo1)
+
+# Modelo reduzido
+Modelo2<- lme(BV ~ Grupo+Material, random = ~1| Trat, data=dados)
+summary(Modelo2)
+
+# Teste de efericidade
+Modelo3 <- ezANOVA(data = dados, dv = BV, wid = Trat, within = .(Material), between = Grupo)
+Modelo3
+
+# Comparações multiplas grupo
+
+t<-4 # Numero de níveis do fator material
+QMR2<-Modelo2$sig^2
+
+Sig2rho<- 0.3880708^2 
+
+QMR1<-QMR2+t*Sig2rho
+
+mean.g <- tapply(BV,Grupo,mean)
+mean.m <- tapply(BV,Material,mean)
+
+g <- 2
+gl <- 2*4
+C <- qt(1-(0.05/(2*g)),gl)
+
+mean.g[1]-mean.g[2] - C*sqrt((2/(5*4))*QMR1)
+mean.g[1]-mean.g[2] + C*sqrt((2/(5*4))*QMR1)
+
+# Comparações multiplas material
+
+g <- 6
+gl <- 2*4*3
+C <- qt(1-(0.05/(2*g)),gl)
+
+
+mean.m[1]-mean.m[2] - C*sqrt((2/(5*2))*QMR2)
+mean.m[1]-mean.m[2] + C*sqrt((2/(5*2))*QMR2)
+
+
+mean.m[1]-mean.m[3] - C*sqrt((2/(5*2))*QMR2)
+mean.m[1]-mean.m[3] + C*sqrt((2/(5*2))*QMR2)
+
+mean.m[1]-mean.m[4] - C*sqrt((2/(5*2))*QMR2)
+mean.m[1]-mean.m[4] + C*sqrt((2/(5*2))*QMR2)
+
+mean.m[2]-mean.m[3] - C*sqrt((2/(5*2))*QMR2)
+mean.m[2]-mean.m[3] + C*sqrt((2/(5*2))*QMR2)
+
+mean.m[2]-mean.m[4] - C*sqrt((2/(5*2))*QMR2)
+mean.m[2]-mean.m[4] + C*sqrt((2/(5*2))*QMR2)
+
+mean.m[3]-mean.m[4] - C*sqrt((2/(5*2))*QMR2)
+mean.m[3]-mean.m[4] + C*sqrt((2/(5*2))*QMR2)
+```
+
